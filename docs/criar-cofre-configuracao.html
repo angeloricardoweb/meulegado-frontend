@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Cofre Digital - Configuração | LegadoBox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .recipient-card { border: 2px solid transparent; transition: all 0.3s ease; }
+        .recipient-card.selected { border-color: #667eea; background: linear-gradient(135deg, #667eea10, #764ba210); }
+        .recipient-card:hover { border-color: #667eea50; }
+        .step-active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .step-inactive { background: #e5e7eb; color: #6b7280; }
+        .password-strength { height: 4px; border-radius: 2px; transition: all 0.3s ease; }
+        .strength-weak { background: #ef4444; width: 25%; }
+        .strength-medium { background: #f59e0b; width: 50%; }
+        .strength-good { background: #10b981; width: 75%; }
+        .strength-strong { background: #059669; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-4 px-4">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <i data-lucide="heart" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">LegadoBox</h1>
+                    <p class="text-white/80 text-sm">Criar Cofre Digital</p>
+                </div>
+            </div>
+            <button onclick="goBack()" class="flex items-center space-x-2 text-white/80 hover:text-white">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                <span>Voltar</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Progress Steps -->
+    <section class="py-6 px-4 bg-white border-b">
+        <div class="max-w-4xl mx-auto flex items-center justify-center space-x-8">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full step-active flex items-center justify-center font-semibold">1</div>
+                <span class="font-medium text-gray-900">Configuração</span>
+            </div>
+            <div class="w-16 h-1 bg-gray-200 rounded"></div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full step-inactive flex items-center justify-center font-semibold">2</div>
+                <span class="font-medium text-gray-500">Conteúdo</span>
+            </div>
+            <div class="w-16 h-1 bg-gray-200 rounded"></div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full step-inactive flex items-center justify-center font-semibold">3</div>
+                <span class="font-medium text-gray-500">Finalizar</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="py-8 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">🎁 Configurar Seu Cofre Digital</h2>
+                <p class="text-xl text-gray-600">Vamos começar definindo para quem será este cofre especial</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <form id="configForm" onsubmit="handleSubmit(event)">
+                    
+                    <!-- Select Recipient -->
+                    <div class="mb-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Escolha o Destinatário</h3>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-6">Selecione para quem você está criando este cofre digital especial</p>
+
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="recipient-card bg-white border rounded-xl p-4 cursor-pointer" onclick="selectRecipient(1)">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">M</div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">Maria Silva</h4>
+                                        <p class="text-sm text-gray-500">Filha • maria@email.com</p>
+                                        <p class="text-xs text-gray-400">Cadastrada em 15/01/2024</p>
+                                    </div>
+                                    <div class="recipient-check hidden">
+                                        <i data-lucide="check-circle" class="w-6 h-6 text-blue-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="recipient-card bg-white border rounded-xl p-4 cursor-pointer" onclick="selectRecipient(2)">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg">J</div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">João Silva</h4>
+                                        <p class="text-sm text-gray-500">Filho • joao@email.com</p>
+                                        <p class="text-xs text-gray-400">Cadastrado em 10/01/2024</p>
+                                    </div>
+                                    <div class="recipient-check hidden">
+                                        <i data-lucide="check-circle" class="w-6 h-6 text-blue-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="recipient-card bg-white border rounded-xl p-4 cursor-pointer" onclick="selectRecipient(3)">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg">A</div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">Ana Santos</h4>
+                                        <p class="text-sm text-gray-500">Esposa • ana@email.com</p>
+                                        <p class="text-xs text-gray-400">Cadastrada em 05/01/2024</p>
+                                    </div>
+                                    <div class="recipient-check hidden">
+                                        <i data-lucide="check-circle" class="w-6 h-6 text-blue-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="recipient-card bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400" onclick="addNewRecipient()">
+                                <div class="flex items-center justify-center space-x-3 h-full">
+                                    <i data-lucide="plus-circle" class="w-8 h-8 text-gray-400"></i>
+                                    <div class="text-center">
+                                        <p class="font-medium text-gray-600">Adicionar Novo</p>
+                                        <p class="text-sm text-gray-400">Cadastrar destinatário</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Set Password -->
+                    <div class="mb-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="lock" class="w-5 h-5 text-purple-600"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Definir Senha de Acesso</h3>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-6">Crie uma senha que o destinatário usará para acessar o cofre digital</p>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Senha do Cofre</label>
+                                <div class="relative">
+                                    <input type="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite uma senha segura" oninput="checkPasswordStrength()" required>
+                                    <button type="button" onclick="togglePassword('password')" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                        <i data-lucide="eye" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="password-strength bg-gray-200" id="passwordStrength"></div>
+                                    <p class="text-xs text-gray-500 mt-1" id="passwordStrengthText">Digite uma senha para ver a força</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Senha</label>
+                                <div class="relative">
+                                    <input type="password" id="confirmPassword" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Confirme a senha" oninput="checkPasswordMatch()" required>
+                                    <button type="button" onclick="togglePassword('confirmPassword')" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                        <i data-lucide="eye" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-2" id="passwordMatch"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password Reminder -->
+                    <div class="mb-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-green-600"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Lembrete da Senha</h3>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-6">Crie um lembrete que ajudará o destinatário a descobrir a senha. Seja criativo mas claro!</p>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lembrete Personalizado</label>
+                            <textarea id="passwordHint" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: 'A data do nosso primeiro encontro seguida do nome do nosso primeiro pet' ou 'O ano que nos casamos + o nome da nossa música favorita'" required></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Este lembrete será enviado junto com o link de acesso ao cofre</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-4 mt-4">
+                            <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <h4 class="font-medium text-yellow-800 mb-2">💡 Exemplo 1:</h4>
+                                <p class="text-sm text-yellow-700">"Lembra da nossa primeira viagem juntos? O nome da cidade + o ano que fomos"</p>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                                <h4 class="font-medium text-green-800 mb-2">💡 Exemplo 2:</h4>
+                                <p class="text-sm text-green-700">"O apelido carinhoso que eu te dava + sua idade quando nos conhecemos"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Message -->
+                    <div class="mb-8">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="mail" class="w-5 h-5 text-pink-600"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Mensagem de Entrega</h3>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-6">Esta mensagem será enviada junto com o link do cofre para contextualizar o presente</p>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mensagem Personalizada</label>
+                            <textarea id="deliveryMessage" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: 'Minha querida filha, criei este cofre digital especial para você. Dentro há memórias, fotos e mensagens que quero que você tenha para sempre. Use o lembrete abaixo para descobrir a senha e acessar seu presente.'" required></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Esta mensagem aparecerá no e-mail de notificação</p>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="mt-6 p-4 bg-gray-50 rounded-lg border">
+                            <h4 class="font-medium text-gray-900 mb-3">📧 Preview do E-mail:</h4>
+                            <div class="bg-white p-4 rounded border text-sm">
+                                <div class="border-b pb-2 mb-3">
+                                    <p><strong>De:</strong> LegadoBox &lt;noreply@legadobox.com.br&gt;</p>
+                                    <p><strong>Para:</strong> <span id="previewEmail">destinatario@email.com</span></p>
+                                    <p><strong>Assunto:</strong> 💝 Você recebeu um Cofre Digital especial</p>
+                                </div>
+                                <div class="space-y-3">
+                                    <p>Olá <span id="previewName">Destinatário</span>,</p>
+                                    <div id="previewMessage" class="italic text-gray-700">[Sua mensagem personalizada aparecerá aqui]</div>
+                                    <div class="bg-blue-50 p-3 rounded">
+                                        <p><strong>🔗 Link do Cofre:</strong> https://cofre.legadobox.com.br/abc123</p>
+                                        <p><strong>💡 Lembrete da Senha:</strong></p>
+                                        <div id="previewHint" class="italic">[Seu lembrete aparecerá aqui]</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between pt-6 border-t">
+                        <button type="button" onclick="goBack()" class="flex items-center space-x-2 px-6 py-3 text-gray-600 hover:text-gray-800">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            <span>Voltar</span>
+                        </button>
+                        
+                        <button type="submit" class="gradient-bg text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                            <span>Continuar para Conteúdo</span>
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let selectedRecipient = null;
+
+        function selectRecipient(id) {
+            document.querySelectorAll('.recipient-card').forEach(card => {
+                card.classList.remove('selected');
+                card.querySelector('.recipient-check').classList.add('hidden');
+            });
+
+            const selectedCard = document.querySelector(`.recipient-card:nth-child(${id})`);
+            selectedCard.classList.add('selected');
+            selectedCard.querySelector('.recipient-check').classList.remove('hidden');
+            selectedRecipient = id;
+            updatePreview();
+        }
+
+        function addNewRecipient() {
+            alert('Funcionalidade de adicionar novo destinatário será implementada em breve!');
+        }
+
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = field.nextElementSibling.querySelector('i');
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                field.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthBar = document.getElementById('passwordStrength');
+            const strengthText = document.getElementById('passwordStrengthText');
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z\d]/.test(password)) strength++;
+
+            strengthBar.className = 'password-strength bg-gray-200';
+            
+            switch (strength) {
+                case 0:
+                case 1:
+                    strengthBar.classList.add('strength-weak');
+                    strengthText.textContent = 'Senha fraca';
+                    break;
+                case 2:
+                    strengthBar.classList.add('strength-medium');
+                    strengthText.textContent = 'Senha média';
+                    break;
+                case 3:
+                    strengthBar.classList.add('strength-good');
+                    strengthText.textContent = 'Senha boa';
+                    break;
+                case 4:
+                    strengthBar.classList.add('strength-strong');
+                    strengthText.textContent = 'Senha forte';
+                    break;
+            }
+            checkPasswordMatch();
+        }
+
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const matchDiv = document.getElementById('passwordMatch');
+
+            if (confirmPassword === '') {
+                matchDiv.innerHTML = '';
+                return;
+            }
+
+            if (password === confirmPassword) {
+                matchDiv.innerHTML = '<p class="text-xs text-green-600 flex items-center space-x-1"><i data-lucide="check" class="w-4 h-4"></i><span>Senhas coincidem</span></p>';
+            } else {
+                matchDiv.innerHTML = '<p class="text-xs text-red-600 flex items-center space-x-1"><i data-lucide="x" class="w-4 h-4"></i><span>Senhas não coincidem</span></p>';
+            }
+            lucide.createIcons();
+        }
+
+        function updatePreview() {
+            const recipients = [
+                { name: 'Maria Silva', email: 'maria@email.com' },
+                { name: 'João Silva', email: 'joao@email.com' },
+                { name: 'Ana Santos', email: 'ana@email.com' }
+            ];
+
+            if (selectedRecipient && recipients[selectedRecipient - 1]) {
+                document.getElementById('previewName').textContent = recipients[selectedRecipient - 1].name;
+                document.getElementById('previewEmail').textContent = recipients[selectedRecipient - 1].email;
+            }
+
+            const deliveryMessage = document.getElementById('deliveryMessage').value;
+            const passwordHint = document.getElementById('passwordHint').value;
+
+            document.getElementById('previewMessage').textContent = deliveryMessage || '[Sua mensagem personalizada aparecerá aqui]';
+            document.getElementById('previewHint').textContent = passwordHint || '[Seu lembrete aparecerá aqui]';
+        }
+
+        document.getElementById('deliveryMessage').addEventListener('input', updatePreview);
+        document.getElementById('passwordHint').addEventListener('input', updatePreview);
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            if (!selectedRecipient) {
+                alert('Por favor, selecione um destinatário.');
+                return;
+            }
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('As senhas não coincidem.');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('A senha deve ter pelo menos 8 caracteres.');
+                return;
+            }
+
+            const configData = {
+                recipient: selectedRecipient,
+                password: password,
+                passwordHint: document.getElementById('passwordHint').value,
+                deliveryMessage: document.getElementById('deliveryMessage').value
+            };
+
+            localStorage.setItem('cofreConfig', JSON.stringify(configData));
+            window.location.href = 'criar-cofre-conteudo.html';
+        }
+
+        function goBack() {
+            if (confirm('Tem certeza que deseja voltar? As informações não salvas serão perdidas.')) {
+                window.history.back();
+            }
+        }
+    </script>
+</body>
+</html>
+

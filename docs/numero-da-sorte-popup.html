@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Número da Sorte - LegadoBox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-gold { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .gradient-green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .gradient-purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .animate-bounce-slow { animation: bounce 2s infinite; }
+        .animate-pulse-slow { animation: pulse 3s infinite; }
+        .animate-glow { animation: glow 2s ease-in-out infinite alternate; }
+        .lucky-number { 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+            background-size: 200% 200%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        .modal-backdrop { backdrop-filter: blur(8px); }
+        
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+            to { box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), 0 0 40px rgba(251, 191, 36, 0.3); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        
+        .rule-item {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .rule-item:hover {
+            border-left-color: #f59e0b;
+            background-color: #fef3c7;
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- Demo Page Header -->
+    <header class="gradient-bg text-white py-6 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i data-lucide="heart" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">LegadoBox</h1>
+                        <p class="text-white/80">Seu Cofre Digital de Legados</p>
+                    </div>
+                </div>
+                
+                <!-- Lucky Number Display -->
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-white/80 text-sm">Seu Número da Sorte</p>
+                        <div class="flex items-center space-x-2">
+                            <div class="lucky-number text-white font-bold text-xl px-4 py-2 rounded-lg animate-glow">
+                                #7842
+                            </div>
+                            <button onclick="openLuckyModal()" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                                <i data-lucide="help-circle" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Demo Content -->
+    <main class="py-12 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <div class="float-animation mb-6">
+                    <div class="w-20 h-20 gradient-gold rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="gift" class="w-10 h-10 text-white"></i>
+                    </div>
+                </div>
+                
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">🎁 Participe do Sorteio Anual!</h2>
+                <p class="text-xl text-gray-600 mb-8">
+                    Clique no ícone de interrogação ao lado do seu número da sorte para conhecer todas as regras e como participar!
+                </p>
+                
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="user-plus" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-2">1. Cadastre-se</h3>
+                        <p class="text-gray-600 text-sm">Receba automaticamente seu número da sorte</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="calendar" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-2">2. Mantenha Ativo</h3>
+                        <p class="text-gray-600 text-sm">12 meses de assinatura para habilitar</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-2">3. Concorra</h3>
+                        <p class="text-gray-600 text-sm">Sorteio todo primeiro sábado de janeiro</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Lucky Number Modal -->
+    <div id="luckyModal" class="fixed inset-0 bg-black/50 modal-backdrop hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            
+            <!-- Modal Header -->
+            <div class="gradient-gold text-white p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center animate-bounce-slow">
+                            <i data-lucide="gift" class="w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">🎁 Sorteio Anual</h3>
+                            <p class="text-white/90">Concorra a um iPhone 16 Pro Max!</p>
+                        </div>
+                    </div>
+                    <button onclick="closeLuckyModal()" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6">
+                
+                <!-- Prize Section -->
+                <div class="text-center mb-8">
+                    <div class="w-24 h-24 gradient-purple rounded-full flex items-center justify-center mx-auto mb-4 float-animation">
+                        <i data-lucide="smartphone" class="w-12 h-12 text-white"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">📲 Prêmio: iPhone 16 Pro Max</h4>
+                    <p class="text-gray-600">
+                        Todo usuário cadastrado recebe automaticamente um número exclusivo da sorte. Com ele, você poderá participar do nosso sorteio anual de um iPhone 16 Pro Max para registrar os melhores momentos com sua família e pessoas queridas.
+                    </p>
+                </div>
+
+                <!-- How it Works -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                        <i data-lucide="info" class="w-5 h-5 text-blue-500"></i>
+                        <span>📌 Como funciona:</span>
+                    </h4>
+                    
+                    <div class="space-y-4">
+                        <div class="rule-item bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                                <p class="text-gray-700 flex-1">Ao se cadastrar, você recebe um número de sorte.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="rule-item bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                                <p class="text-gray-700 flex-1">Quando completar <strong>12 meses de assinatura ativa</strong>, seu número será automaticamente habilitado para concorrer.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="rule-item bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                                <p class="text-gray-700 flex-1">O sorteio acontece todo ano, no <strong>primeiro sábado de janeiro</strong>, com base no primeiro sorteio da Loteria Federal do dia.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="rule-item bg-gray-50 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm">4</div>
+                                <p class="text-gray-700 flex-1">Serão considerados os <strong>4 últimos números</strong> do resultado do primeiro sorteio da Loteria Federal.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rules -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                        <span>✅ Regras principais:</span>
+                    </h4>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3 rule-item rounded-lg p-3">
+                            <i data-lucide="clock" class="w-5 h-5 text-amber-500 mt-0.5"></i>
+                            <p class="text-gray-700">É necessário ter assinatura ativa há mais de <strong>12 meses</strong> na data do sorteio.</p>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3 rule-item rounded-lg p-3">
+                            <i data-lucide="user" class="w-5 h-5 text-blue-500 mt-0.5"></i>
+                            <p class="text-gray-700">Apenas <strong>um número por usuário</strong>.</p>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3 rule-item rounded-lg p-3">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 text-red-500 mt-0.5"></i>
+                            <p class="text-gray-700">Em caso de cancelamento da assinatura, o tempo é zerado, e um novo período de 12 meses será contado ao reativar.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Draw -->
+                <div class="gradient-green text-white rounded-xl p-6 text-center">
+                    <div class="flex items-center justify-center space-x-2 mb-3">
+                        <i data-lucide="calendar" class="w-6 h-6"></i>
+                        <h4 class="text-lg font-bold">📅 Próximo Sorteio</h4>
+                    </div>
+                    <p class="text-xl font-bold mb-2">Primeiro sábado de janeiro do próximo ano!</p>
+                    <p class="text-white/90">Mantenha sua assinatura ativa e concorra ao iPhone 16 Pro Max!</p>
+                </div>
+
+                <!-- Your Lucky Number -->
+                <div class="mt-6 text-center">
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
+                        <h4 class="text-lg font-bold text-gray-900 mb-3">🍀 Seu Número da Sorte</h4>
+                        <div class="lucky-number text-white font-bold text-3xl px-6 py-3 rounded-lg inline-block animate-glow">
+                            #7842
+                        </div>
+                        <p class="text-gray-600 mt-3 text-sm">
+                            <span id="subscriptionStatus" class="font-medium text-amber-600">⏳ Faltam 8 meses para habilitar</span>
+                        </p>
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="gradient-gold h-2 rounded-full transition-all duration-300" style="width: 33%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">4 de 12 meses completos</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-8 flex items-center justify-center space-x-4">
+                    <button onclick="closeLuckyModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                        <span>Fechar</span>
+                    </button>
+                    
+                    <button class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>Compartilhar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Modal functions
+        function openLuckyModal() {
+            document.getElementById('luckyModal').classList.remove('hidden');
+            document.getElementById('luckyModal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeLuckyModal() {
+            document.getElementById('luckyModal').classList.add('hidden');
+            document.getElementById('luckyModal').classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('luckyModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLuckyModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLuckyModal();
+            }
+        });
+        
+        // Simulate subscription progress
+        function updateSubscriptionStatus() {
+            const monthsCompleted = Math.floor(Math.random() * 12) + 1;
+            const monthsRemaining = 12 - monthsCompleted;
+            const progress = (monthsCompleted / 12) * 100;
+            
+            const statusElement = document.getElementById('subscriptionStatus');
+            
+            if (monthsCompleted >= 12) {
+                statusElement.innerHTML = '✅ <span class="text-green-600 font-bold">Habilitado para o sorteio!</span>';
+                statusElement.className = 'font-medium text-green-600';
+            } else {
+                statusElement.innerHTML = `⏳ Faltam ${monthsRemaining} meses para habilitar`;
+                statusElement.className = 'font-medium text-amber-600';
+            }
+            
+            // Update progress bar
+            const progressBar = document.querySelector('.gradient-gold');
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+            }
+            
+            // Update progress text
+            const progressText = document.querySelector('.text-xs.text-gray-500');
+            if (progressText) {
+                progressText.textContent = `${monthsCompleted} de 12 meses completos`;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSubscriptionStatus();
+        });
+        
+        // Auto-open modal for demo (remove in production)
+        setTimeout(() => {
+            openLuckyModal();
+        }, 2000);
+    </script>
+</body>
+</html>
+

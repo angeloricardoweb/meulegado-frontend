@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seu Cofre Digital - LegadoBox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .message-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .photo-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .video-card {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i data-lucide="heart" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Seu Cofre Digital</h1>
+                        <p class="text-white/80">Mensagens especiais para você</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-white/80 text-sm">Destinatário:</p>
+                    <p class="font-semibold">Maria Silva</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Welcome Message -->
+    <section class="py-12 px-4">
+        <div class="max-w-4xl mx-auto text-center fade-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <div class="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="mail-open" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                    Olá, Maria! 💕
+                </h2>
+                <p class="text-xl text-gray-600 leading-relaxed">
+                    Alguém muito especial deixou estas mensagens, fotos e vídeos para você. 
+                    Cada item foi criado com muito amor e carinho. Explore seu cofre digital 
+                    e guarde essas memórias para sempre.
+                </p>
+                <div class="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
+                    <div class="flex items-center space-x-1">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span>Criado em: 15/01/2024</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>De: João Silva</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Content Overview -->
+    <section class="py-8 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-6 mb-12">
+                <!-- Messages Count -->
+                <div class="message-card text-white rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">Mensagens</h3>
+                            <p class="text-3xl font-bold">5</p>
+                            <p class="text-white/80 text-sm">Cartas especiais</p>
+                        </div>
+                        <i data-lucide="message-circle" class="w-12 h-12 text-white/80"></i>
+                    </div>
+                </div>
+
+                <!-- Photos Count -->
+                <div class="photo-card text-white rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">Fotos</h3>
+                            <p class="text-3xl font-bold">12</p>
+                            <p class="text-white/80 text-sm">Memórias visuais</p>
+                        </div>
+                        <i data-lucide="image" class="w-12 h-12 text-white/80"></i>
+                    </div>
+                </div>
+
+                <!-- Videos Count -->
+                <div class="video-card text-white rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">Vídeos</h3>
+                            <p class="text-3xl font-bold">3</p>
+                            <p class="text-white/80 text-sm">Momentos especiais</p>
+                        </div>
+                        <i data-lucide="video" class="w-12 h-12 text-white/80"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Messages Section -->
+    <section class="py-8 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">💌 Mensagens para Você</h2>
+                <button onclick="downloadAllMessages()" class="download-btn text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span>Baixar Todas</span>
+                </button>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Message 1 -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="heart" class="w-5 h-5 text-pink-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Para minha filha querida</h3>
+                                <p class="text-sm text-gray-500">15 de Janeiro, 2024</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadMessage(1)" class="text-gray-400 hover:text-gray-600">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        "Minha querida Maria, se você está lendo isso, saiba que você foi a maior alegria da minha vida. Cada sorriso seu iluminou meus dias, e cada conquista sua encheu meu coração de orgulho..."
+                    </p>
+                    <button onclick="openMessageModal(1)" class="text-purple-600 hover:text-purple-800 font-medium flex items-center space-x-1">
+                        <span>Ler mensagem completa</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Message 2 -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="star" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Conselhos para a vida</h3>
+                                <p class="text-sm text-gray-500">20 de Janeiro, 2024</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadMessage(2)" class="text-gray-400 hover:text-gray-600">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        "Filha, quero compartilhar alguns conselhos que aprendi ao longo da vida. Primeiro, nunca tenha medo de sonhar grande. Segundo, seja sempre gentil com as pessoas..."
+                    </p>
+                    <button onclick="openMessageModal(2)" class="text-purple-600 hover:text-purple-800 font-medium flex items-center space-x-1">
+                        <span>Ler mensagem completa</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Message 3 -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="gift" class="w-5 h-5 text-green-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Para seu casamento</h3>
+                                <p class="text-sm text-gray-500">Entrega programada</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadMessage(3)" class="text-gray-400 hover:text-gray-600">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        "No dia do seu casamento, quero que saiba o quanto estou feliz por você ter encontrado o amor. Lembro-me de quando você era pequena e sonhava com este dia..."
+                    </p>
+                    <button onclick="openMessageModal(3)" class="text-purple-600 hover:text-purple-800 font-medium flex items-center space-x-1">
+                        <span>Ler mensagem completa</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Photos Section -->
+    <section class="py-8 px-4 bg-gray-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">📸 Álbum de Memórias</h2>
+                <button onclick="downloadAllPhotos()" class="download-btn text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span>Baixar Todas</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Photo 1 -->
+                <div class="relative group cursor-pointer" onclick="openPhotoModal('photo1.jpg', 'Primeiro dia de aula')">
+                    <div class="aspect-square bg-gradient-to-br from-pink-200 to-purple-300 rounded-xl overflow-hidden">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i data-lucide="image" class="w-12 h-12 text-white/80"></i>
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl flex items-center justify-center">
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="zoom-in" class="w-8 h-8 text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Primeiro dia de aula</p>
+                </div>
+
+                <!-- Photo 2 -->
+                <div class="relative group cursor-pointer" onclick="openPhotoModal('photo2.jpg', 'Aniversário de 10 anos')">
+                    <div class="aspect-square bg-gradient-to-br from-blue-200 to-cyan-300 rounded-xl overflow-hidden">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i data-lucide="image" class="w-12 h-12 text-white/80"></i>
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl flex items-center justify-center">
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="zoom-in" class="w-8 h-8 text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Aniversário de 10 anos</p>
+                </div>
+
+                <!-- Photo 3 -->
+                <div class="relative group cursor-pointer" onclick="openPhotoModal('photo3.jpg', 'Viagem em família')">
+                    <div class="aspect-square bg-gradient-to-br from-green-200 to-emerald-300 rounded-xl overflow-hidden">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i data-lucide="image" class="w-12 h-12 text-white/80"></i>
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl flex items-center justify-center">
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="zoom-in" class="w-8 h-8 text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Viagem em família</p>
+                </div>
+
+                <!-- Photo 4 -->
+                <div class="relative group cursor-pointer" onclick="openPhotoModal('photo4.jpg', 'Formatura')">
+                    <div class="aspect-square bg-gradient-to-br from-yellow-200 to-orange-300 rounded-xl overflow-hidden">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i data-lucide="image" class="w-12 h-12 text-white/80"></i>
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl flex items-center justify-center">
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="zoom-in" class="w-8 h-8 text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Formatura</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Videos Section -->
+    <section class="py-8 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">🎥 Vídeos Especiais</h2>
+                <button onclick="downloadAllVideos()" class="download-btn text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span>Baixar Todos</span>
+                </button>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Video 1 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+                    <div class="aspect-video bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center cursor-pointer" onclick="openVideoModal('video1.mp4', 'Mensagem de aniversário')">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2">Mensagem de aniversário</h3>
+                        <p class="text-sm text-gray-600 mb-3">Uma mensagem especial para o seu aniversário de 18 anos</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">2:30 min</span>
+                            <button onclick="downloadVideo('video1.mp4')" class="text-purple-600 hover:text-purple-800">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 2 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+                    <div class="aspect-video bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center cursor-pointer" onclick="openVideoModal('video2.mp4', 'Conselhos para a vida')">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2">Conselhos para a vida</h3>
+                        <p class="text-sm text-gray-600 mb-3">Palavras de sabedoria para te guiar sempre</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">5:15 min</span>
+                            <button onclick="downloadVideo('video2.mp4')" class="text-purple-600 hover:text-purple-800">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 3 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+                    <div class="aspect-video bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center cursor-pointer" onclick="openVideoModal('video3.mp4', 'Memórias da infância')">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2">Memórias da infância</h3>
+                        <p class="text-sm text-gray-600 mb-3">Lembranças especiais dos seus primeiros anos</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">3:45 min</span>
+                            <button onclick="downloadVideo('video3.mp4')" class="text-purple-600 hover:text-purple-800">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download All Section -->
+    <section class="py-12 px-4 bg-gradient-to-r from-purple-600 to-pink-600">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="text-white">
+                <h2 class="text-3xl font-bold mb-4">💾 Baixar Todo o Cofre</h2>
+                <p class="text-xl text-white/90 mb-8">
+                    Guarde todas essas memórias especiais no seu dispositivo para sempre
+                </p>
+                <button onclick="downloadAll()" class="bg-white text-purple-600 px-8 py-4 text-lg font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center space-x-3 mx-auto">
+                    <i data-lucide="download-cloud" class="w-6 h-6"></i>
+                    <span>Baixar Tudo (ZIP - 245 MB)</span>
+                </button>
+                <p class="text-white/70 text-sm mt-4">
+                    Inclui todas as mensagens, fotos e vídeos em alta qualidade
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8 px-4">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="heart" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xl font-bold">LegadoBox</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">
+                Este cofre digital foi criado com muito amor e carinho especialmente para você.
+            </p>
+            <p class="text-gray-500 text-xs">
+                © 2024 LegadoBox. Preservando memórias, conectando corações.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Message Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('messageModal')">&times;</span>
+            <div class="p-8">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="heart" class="w-6 h-6 text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h3 id="messageTitle" class="text-2xl font-bold text-gray-900">Título da Mensagem</h3>
+                        <p id="messageDate" class="text-gray-500">Data</p>
+                    </div>
+                </div>
+                <div id="messageContent" class="text-gray-700 leading-relaxed text-lg">
+                    <!-- Conteúdo da mensagem será inserido aqui -->
+                </div>
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button onclick="closeModal('messageModal')" class="px-6 py-3 text-gray-600 hover:text-gray-800">
+                        Fechar
+                    </button>
+                    <button onclick="downloadCurrentMessage()" class="download-btn text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                        <span>Baixar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div id="photoModal" class="modal">
+        <span class="close" onclick="closeModal('photoModal')">&times;</span>
+        <div class="modal-content bg-black">
+            <div class="p-4">
+                <div class="aspect-video bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center">
+                    <i data-lucide="image" class="w-24 h-24 text-white/80"></i>
+                </div>
+                <div class="text-center mt-4">
+                    <h3 id="photoTitle" class="text-white text-xl font-semibold">Título da Foto</h3>
+                    <button onclick="downloadCurrentPhoto()" class="mt-4 bg-white text-black px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-2 mx-auto">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                        <span>Baixar Foto</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="modal">
+        <span class="close" onclick="closeModal('videoModal')">&times;</span>
+        <div class="modal-content bg-black">
+            <div class="p-4">
+                <div class="aspect-video bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center">
+                    <div class="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                        <i data-lucide="play" class="w-12 h-12 text-white ml-1"></i>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <h3 id="videoTitle" class="text-white text-xl font-semibold">Título do Vídeo</h3>
+                    <button onclick="downloadCurrentVideo()" class="mt-4 bg-white text-black px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-2 mx-auto">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                        <span>Baixar Vídeo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Sample data
+        const messages = {
+            1: {
+                title: "Para minha filha querida",
+                date: "15 de Janeiro, 2024",
+                content: `Minha querida Maria,
+
+Se você está lendo isso, saiba que você foi a maior alegria da minha vida. Cada sorriso seu iluminou meus dias, e cada conquista sua encheu meu coração de orgulho.
+
+Lembro-me de quando você era pequena e corria pela casa com aquele sorriso travesso. Você sempre foi especial, sempre teve essa luz única que fazia todos ao seu redor se sentirem melhor.
+
+Quero que saiba que, mesmo não estando mais fisicamente presente, meu amor por você é eterno. Ele vive em cada memória que construímos juntos, em cada lição que tentei te ensinar, e em cada momento de felicidade que compartilhamos.
+
+Seja forte, seja corajosa, mas acima de tudo, seja você mesma. O mundo precisa da sua luz, da sua bondade e do seu amor.
+
+Te amo para sempre,
+Papai 💕`
+            },
+            2: {
+                title: "Conselhos para a vida",
+                date: "20 de Janeiro, 2024",
+                content: `Minha filha querida,
+
+Quero compartilhar alguns conselhos que aprendi ao longo da vida:
+
+1. Nunca tenha medo de sonhar grande. Seus sonhos são válidos e possíveis.
+
+2. Seja sempre gentil com as pessoas. A gentileza é uma força poderosa que pode mudar o mundo.
+
+3. Não tenha medo de falhar. Os erros são oportunidades de aprendizado e crescimento.
+
+4. Valorize suas amizades verdadeiras. Elas são tesouros raros na vida.
+
+5. Sempre seja grata pelo que tem, mas nunca pare de lutar pelo que quer.
+
+6. Cuide da sua saúde física e mental. Elas são seus bens mais preciosos.
+
+7. Ame com intensidade, mas também saiba se proteger.
+
+8. Seja independente, mas nunca tenha medo de pedir ajuda quando precisar.
+
+Lembre-se: você é capaz de tudo que se propuser a fazer.
+
+Com todo meu amor,
+Papai`
+            },
+            3: {
+                title: "Para seu casamento",
+                date: "Entrega programada",
+                content: `Minha querida filha,
+
+No dia do seu casamento, quero que saiba o quanto estou feliz por você ter encontrado o amor. Lembro-me de quando você era pequena e sonhava com este dia, imaginando como seria seu vestido e como seria o homem que conquistaria seu coração.
+
+Hoje, vendo você realizar esse sonho, meu coração se enche de alegria e orgulho. Você cresceu e se tornou uma mulher incrível, forte, inteligente e cheia de amor para dar.
+
+Alguns conselhos para sua nova jornada:
+
+- O casamento é uma parceria. Sejam companheiros em todas as situações.
+- A comunicação é a base de tudo. Conversem sempre, sobre tudo.
+- Nunca durmam brigados. Resolvam os problemas com amor e paciência.
+- Mantenham viva a paixão, mas construam também uma amizade sólida.
+- Apoiem os sonhos um do outro e cresçam juntos.
+
+Que vocês sejam muito felizes e que construam uma família cheia de amor, risadas e cumplicidade.
+
+Estarei sempre com vocês, em cada momento especial, em cada desafio, em cada alegria.
+
+Te amo infinitamente,
+Papai 💕
+
+P.S.: No cofre há uma surpresa especial para vocês dois. Procurem pela pasta "Presente de Casamento".`
+            }
+        };
+
+        let currentMessage = null;
+        let currentPhoto = null;
+        let currentVideo = null;
+
+        // Modal functions
+        function openMessageModal(messageId) {
+            const message = messages[messageId];
+            if (message) {
+                document.getElementById('messageTitle').textContent = message.title;
+                document.getElementById('messageDate').textContent = message.date;
+                document.getElementById('messageContent').innerHTML = message.content.replace(/\n/g, '<br><br>');
+                currentMessage = messageId;
+                document.getElementById('messageModal').style.display = 'block';
+            }
+        }
+
+        function openPhotoModal(photoSrc, photoTitle) {
+            document.getElementById('photoTitle').textContent = photoTitle;
+            currentPhoto = photoSrc;
+            document.getElementById('photoModal').style.display = 'block';
+        }
+
+        function openVideoModal(videoSrc, videoTitle) {
+            document.getElementById('videoTitle').textContent = videoTitle;
+            currentVideo = videoSrc;
+            document.getElementById('videoModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Download functions
+        function downloadMessage(messageId) {
+            const message = messages[messageId];
+            if (message) {
+                // Simular download
+                alert(`Baixando mensagem: "${message.title}"`);
+            }
+        }
+
+        function downloadCurrentMessage() {
+            if (currentMessage) {
+                downloadMessage(currentMessage);
+                closeModal('messageModal');
+            }
+        }
+
+        function downloadCurrentPhoto() {
+            if (currentPhoto) {
+                alert(`Baixando foto: ${currentPhoto}`);
+                closeModal('photoModal');
+            }
+        }
+
+        function downloadCurrentVideo() {
+            if (currentVideo) {
+                alert(`Baixando vídeo: ${currentVideo}`);
+                closeModal('videoModal');
+            }
+        }
+
+        function downloadVideo(videoSrc) {
+            alert(`Baixando vídeo: ${videoSrc}`);
+        }
+
+        function downloadAllMessages() {
+            alert('Baixando todas as mensagens...');
+        }
+
+        function downloadAllPhotos() {
+            alert('Baixando todas as fotos...');
+        }
+
+        function downloadAllVideos() {
+            alert('Baixando todos os vídeos...');
+        }
+
+        function downloadAll() {
+            alert('Preparando download completo do cofre digital...\n\nIsso pode levar alguns minutos devido ao tamanho dos arquivos.');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = ['messageModal', 'photoModal', 'videoModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    closeModal(modalId);
+                }
+            });
+        }
+
+        // Add fade-in animation to elements when they come into view
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.card-hover');
+            cards.forEach(card => observer.observe(card));
+        });
+    </script>
+</body>
+</html>
+
