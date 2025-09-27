@@ -1,0 +1,5 @@
+- Ao criar uma nova página, verifique a estrutura de pastas e arquivos existentes para não duplicar o código.
+- Mantenha a consistência do layout.
+- Mantenha a consistência do código.
+- Sempre crie os formulario usando os components do chadcnui.
+- Use Tailtwind.
