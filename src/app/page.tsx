@@ -16,6 +16,7 @@ import {
 import LuckyNumberModal from "@/components/LuckyNumberModal";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast, ToastContainer } from "@/components/Toast";
 
 // Dados mockados
 const mockData = {
@@ -62,6 +63,7 @@ const mockData = {
 export default function Dashboard() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
+  const { addToast, toasts } = useToast();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLuckyModal, setShowLuckyModal] = useState(false);
 
@@ -77,7 +79,12 @@ export default function Dashboard() {
 
   const handleAction = (action: string) => {
     if (action === "dev") {
-      return alert("Funcionalidade em desenvolvimento");
+      addToast({
+        type: 'info',
+        title: 'Funcionalidade em desenvolvimento',
+        message: 'Esta funcionalidade estará disponível em breve!'
+      });
+      return;
     }
     return router.push(action);
   };
@@ -422,6 +429,9 @@ export default function Dashboard() {
         }
         nextDrawDate="4 de janeiro de 2025"
       />
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

@@ -25,7 +25,7 @@ api.interceptors.request.use(
 );
 
 // Interceptor para tratar respostas
-api.interceptors.response.use(
+/* api.interceptors.response.use(
   (response) => {
     return response;
   },
@@ -42,6 +42,6 @@ api.interceptors.response.use(
     }
     return Promise.reject(error);
   }
-);
+); */
 
 export default api;

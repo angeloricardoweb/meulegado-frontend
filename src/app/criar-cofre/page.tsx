@@ -15,6 +15,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useToast, ToastContainer } from '@/components/Toast';
 
 // Dados mockados
 const mockRecipients = [
@@ -49,6 +50,7 @@ const mockRecipients = [
 
 export default function CreateVaultPage() {
   const router = useRouter();
+  const { addToast, toasts } = useToast();
   const [selectedRecipient, setSelectedRecipient] = useState<number | null>(
     null
   );
@@ -102,17 +104,29 @@ export default function CreateVaultPage() {
     e.preventDefault();
 
     if (!selectedRecipient) {
-      alert("Por favor, selecione um destinatário.");
+      addToast({
+        type: 'warning',
+        title: 'Destinatário não selecionado',
+        message: 'Por favor, selecione um destinatário para o cofre.'
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("As senhas não coincidem.");
+      addToast({
+        type: 'error',
+        title: 'Senhas não coincidem',
+        message: 'As senhas digitadas não são iguais. Verifique e tente novamente.'
+      });
       return;
     }
 
     if (password.length < 8) {
-      alert("A senha deve ter pelo menos 8 caracteres.");
+      addToast({
+        type: 'error',
+        title: 'Senha muito curta',
+        message: 'A senha deve ter pelo menos 8 caracteres para maior segurança.'
+      });
       return;
     }
 
@@ -254,7 +268,7 @@ export default function CreateVaultPage() {
                   ))}
 
                   <div
-                    onClick={() => console.log("Adicionar novo destinatário")}
+                    onClick={() => router.push("/destinatarios")}
                     className="border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-300"
                   >
                     <div className="flex items-center justify-center space-x-3 h-full">
@@ -537,6 +551,9 @@ export default function CreateVaultPage() {
           </div>
         </div>
       </main>
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

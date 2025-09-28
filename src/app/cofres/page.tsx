@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Heart, ArrowLeft, Plus, Eye, Edit, Trash2, Lock, Users, Calendar, Image, Video, MessageCircle, Gift, Clock, CheckCircle, AlertCircle, Star, Crown, Archive, Share2, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ArrowLeft, Plus, Eye, Edit, Trash2, Users, Image, Video, MessageCircle, Gift, Clock, CheckCircle, AlertCircle, Star, Archive, Share2, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 // Interface para cofres
 interface Cofre {
@@ -187,11 +188,14 @@ const mockCofres: Cofre[] = [
 ];
 
 export default function CofresPage() {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const [cofres, setCofres] = useState<Cofre[]>(mockCofres);
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
   const [filtroPrioridade, setFiltroPrioridade] = useState<string>('todos');
   const [busca, setBusca] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [cofreToDelete, setCofreToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filtrar cofres
   const cofresFiltrados = cofres.filter(cofre => {
@@ -294,9 +298,34 @@ export default function CofresPage() {
   };
 
   const handleDeleteCofre = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cofre? Esta ação não pode ser desfeita.')) {
-      setCofres(prev => prev.filter(cofre => cofre.id !== id));
+    setCofreToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!cofreToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // Simular processamento
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setCofres(prev => prev.filter(cofre => cofre.id !== cofreToDelete));
+      setShowDeleteModal(false);
+      setCofreToDelete(null);
+    } catch {
+      // Em caso de erro, apenas fechar o modal
+      setShowDeleteModal(false);
+      setCofreToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setCofreToDelete(null);
   };
 
   const handleArchiveCofre = (id: string) => {
@@ -636,6 +665,19 @@ export default function CofresPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Cofre"
+        message="Tem certeza que deseja excluir este cofre? Esta ação não pode ser desfeita."
+        confirmText="Sim, Excluir"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

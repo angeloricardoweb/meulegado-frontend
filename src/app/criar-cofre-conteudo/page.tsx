@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Heart, ArrowLeft, Image, Video, MessageCircle, Plus, UploadCloud, X, Trash2, Save, Eye, ArrowRight, Sparkles, Check, Play, PlusCircle, Lightbulb, Camera, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ArrowLeft, Image, Video, MessageCircle, UploadCloud, X, Trash2, Save, Eye, ArrowRight, Sparkles, Check, PlusCircle, Lightbulb, Camera, Star } from 'lucide-react';
+import { useToast, ToastContainer } from '@/components/Toast';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 // Dados mockados
 const mockContentData = {
@@ -18,6 +20,7 @@ const mockContentData = {
 };
 
 export default function CreateVaultContentPage() {
+  const { addToast, toasts } = useToast();
   const [currentTab, setCurrentTab] = useState('photos');
   const [currentAlbum, setCurrentAlbum] = useState(1);
   const [photos, setPhotos] = useState<{ [key: number]: any[] }>({ 1: [], 2: [], 3: [], 4: [] });
@@ -26,6 +29,8 @@ export default function CreateVaultContentPage() {
   const [albumTitles, setAlbumTitles] = useState<{ [key: number]: string }>({ 1: '', 2: '', 3: '', 4: '' });
   const [showGeneratedScript, setShowGeneratedScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   const totalPhotos = Object.values(photos).reduce((sum, album) => sum + album.length, 0);
 
@@ -42,13 +47,21 @@ export default function CreateVaultContentPage() {
     const currentAlbumPhotos = photos[currentAlbum] || [];
     
     if (currentAlbumPhotos.length + fileArray.length > mockContentData.limits.photosPerAlbum) {
-      alert(`Máximo ${mockContentData.limits.photosPerAlbum} fotos por álbum!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de fotos excedido',
+        message: `Máximo ${mockContentData.limits.photosPerAlbum} fotos por álbum!`
+      });
       return;
     }
 
     fileArray.forEach(file => {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Arquivo muito grande: ' + file.name + '. Máximo 5MB por foto.');
+        addToast({
+          type: 'error',
+          title: 'Arquivo muito grande',
+          message: `${file.name} excede o limite de 5MB por foto.`
+        });
         return;
       }
 
@@ -74,13 +87,21 @@ export default function CreateVaultContentPage() {
     const fileArray = Array.from(files);
     
     if (videos.length + fileArray.length > mockContentData.limits.videos) {
-      alert(`Máximo ${mockContentData.limits.videos} vídeos!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de vídeos excedido',
+        message: `Máximo ${mockContentData.limits.videos} vídeos!`
+      });
       return;
     }
 
     fileArray.forEach(file => {
       if (file.size > 100 * 1024 * 1024) {
-        alert('Arquivo muito grande: ' + file.name + '. Máximo 100MB por vídeo.');
+        addToast({
+          type: 'error',
+          title: 'Arquivo muito grande',
+          message: `${file.name} excede o limite de 100MB por vídeo.`
+        });
         return;
       }
 
@@ -114,7 +135,11 @@ export default function CreateVaultContentPage() {
 
   const handleAddMessage = () => {
     if (messages.length >= mockContentData.limits.messages) {
-      alert(`Máximo ${mockContentData.limits.messages} mensagens!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de mensagens excedido',
+        message: `Máximo ${mockContentData.limits.messages} mensagens!`
+      });
       return;
     }
 
@@ -142,10 +167,13 @@ export default function CreateVaultContentPage() {
 
   const handleGenerateScript = () => {
     const videoType = (document.getElementById('videoType') as HTMLSelectElement)?.value;
-    const videoDetails = (document.getElementById('videoDetails') as HTMLTextAreaElement)?.value;
 
     if (!videoType) {
-      alert('Por favor, selecione o tipo de vídeo.');
+      addToast({
+        type: 'warning',
+        title: 'Tipo de vídeo não selecionado',
+        message: 'Por favor, selecione o tipo de vídeo antes de continuar.'
+      });
       return;
     }
 
@@ -193,7 +221,11 @@ Continue criando memórias maravilhosas! ❤️`
 
   const handleSuggestMessage = (type: string) => {
     if (messages.length >= mockContentData.limits.messages) {
-      alert(`Máximo ${mockContentData.limits.messages} mensagens!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de mensagens excedido',
+        message: `Máximo ${mockContentData.limits.messages} mensagens!`
+      });
       return;
     }
 
@@ -222,20 +254,51 @@ Continue criando memórias maravilhosas! ❤️`
       albumTitles: albumTitles
     };
     localStorage.setItem('cofreContent', JSON.stringify(data));
-    alert('Progresso salvo com sucesso!');
+    addToast({
+      type: 'success',
+      title: 'Progresso salvo!',
+      message: 'Seu progresso foi salvo com sucesso.'
+    });
   };
 
   const handleFinalizeVault = () => {
     if (totalPhotos === 0 && videos.length === 0 && messages.length === 0) {
-      alert('Adicione pelo menos um conteúdo (foto, vídeo ou mensagem) antes de finalizar.');
+      addToast({
+        type: 'warning',
+        title: 'Cofre vazio',
+        message: 'Adicione pelo menos um conteúdo (foto, vídeo ou mensagem) antes de finalizar.'
+      });
       return;
     }
 
-    if (confirm('Tem certeza que deseja finalizar o cofre? Após finalizar, ele será enviado para o destinatário.')) {
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmFinalize = async () => {
+    setIsFinalizing(true);
+    
+    try {
+      // Simular processamento
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       handleSaveProgress();
+      setShowConfirmationModal(false);
+      
       // Redirecionar para página de finalização
       window.location.href = '/criar-cofre-finalizar';
+    } catch {
+      addToast({
+        type: 'error',
+        title: 'Erro ao finalizar',
+        message: 'Ocorreu um erro ao finalizar o cofre. Tente novamente.'
+      });
+    } finally {
+      setIsFinalizing(false);
     }
+  };
+
+  const handleCancelFinalize = () => {
+    setShowConfirmationModal(false);
   };
 
   return (
@@ -424,7 +487,7 @@ Continue criando memórias maravilhosas! ❤️`
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(photos[currentAlbum] || []).map((photo, index) => (
                       <div key={photo.id} className="relative group bg-gray-100 rounded-lg overflow-hidden aspect-square">
-                        <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                        <img src={photo.url} alt={photo.name || 'Foto do cofre'} className="w-full h-full object-cover" />
                         <div className="absolute top-2 right-2">
                           <button 
                             onClick={() => handleRemovePhoto(currentAlbum, index)}
@@ -747,6 +810,22 @@ Continue criando memórias maravilhosas! ❤️`
           </div>
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={handleCancelFinalize}
+        onConfirm={handleConfirmFinalize}
+        title="Finalizar Cofre"
+        message="Tem certeza que deseja finalizar o cofre? Após finalizar, ele será enviado para o destinatário."
+        confirmText="Sim, Finalizar"
+        cancelText="Cancelar"
+        type="warning"
+        isLoading={isFinalizing}
+      />
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

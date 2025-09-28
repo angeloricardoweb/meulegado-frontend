@@ -1,69 +1,81 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Heart, Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
-import api from '@/lib/api';
+import { useState } from "react";
+import {
+  Heart,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  MapPin,
+  Calendar,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
+import api from "@/lib/api";
 
 export default function CadastroPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    cpf: '',
-    data_nascimento: '',
-    email: '',
-    telefone: '',
-    endereco: '',
-    password: '',
-    password_confirmation: ''
+    name: "",
+    cpf: "",
+    data_nascimento: "",
+    email: "",
+    telefone: "",
+    endereco: "",
+    password: "",
+    password_confirmation: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Limpar erro quando usuário começar a digitar
-    if (error) setError('');
+    if (error) setError("");
   };
 
   const formatCPF = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    const numbers = value.replace(/\D/g, "");
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   };
 
   const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    const numbers = value.replace(/\D/g, "");
+    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
   };
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCPF(e.target.value);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      cpf: formatted
+      cpf: formatted,
     }));
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      telefone: formatted
+      telefone: formatted,
     }));
   };
 
   const validateForm = () => {
     if (formData.password !== formData.password_confirmation) {
-      setError('As senhas não coincidem');
+      setError("As senhas não coincidem");
       return false;
     }
     if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError("A senha deve ter pelo menos 6 caracteres");
       return false;
     }
     return true;
@@ -71,97 +83,55 @@ export default function CadastroPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       // Preparar dados para envio removendo máscaras
       const dataToSend = {
         ...formData,
-        cpf: formData.cpf.replace(/\D/g, ''), // Remove todos os caracteres não numéricos
-        telefone: formData.telefone.replace(/\D/g, '') // Remove todos os caracteres não numéricos
+        cpf: formData.cpf.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
+        telefone: formData.telefone.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
       };
 
-      const response = await api.post('/register', dataToSend);
-      
-      console.log('Resposta da API de cadastro:', response.data);
-      
+      const response = await api.post("/register", dataToSend);
+
+      console.log("Resposta da API de cadastro:", response.data);
+
       // Verificar se a resposta indica sucesso
       if (response.data.error === false && response.data.results) {
         const results = response.data.results;
-        
+
         if (!results.user) {
-          throw new Error('Dados do usuário não encontrados na resposta');
+          throw new Error("Dados do usuário não encontrados na resposta");
         }
-        
+
         const token = results.access_token;
         if (!token) {
-          throw new Error('Token não encontrado na resposta');
+          throw new Error("Token não encontrado na resposta");
         }
-        
+
         // Salvar token e dados do usuário
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(results.user));
-        
-        console.log('Token salvo:', token);
-        console.log('Usuário salvo:', results.user);
-        
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(results.user));
+
+        console.log("Token salvo:", token);
+        console.log("Usuário salvo:", results.user);
+
         setSuccess(true);
         // Redirecionar para dashboard após 2 segundos
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = "/";
         }, 2000);
       } else {
-        throw new Error('Erro no cadastro');
+        throw new Error("Erro no cadastro");
       }
-    } catch (error: unknown) {
-      console.error('Erro no cadastro:', error);
-      
-      let errorMessage = 'Erro de conexão. Tente novamente.';
-      
-      // Verificar se é um erro de validação (não é um erro de axios)
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { 
-          response?: { 
-            data?: { 
-              message?: string;
-              error?: string;
-              errors?: Record<string, string[]>;
-            };
-            status?: number;
-          } 
-        };
-        
-        // Verificar diferentes formatos de erro da API
-        if (axiosError.response?.data?.message) {
-          errorMessage = axiosError.response.data.message;
-        } else if (axiosError.response?.data?.error) {
-          errorMessage = axiosError.response.data.error;
-        } else if (axiosError.response?.data?.errors) {
-          // Tratar erros de validação
-          const errors = axiosError.response.data.errors;
-          const firstError = Object.values(errors)[0];
-          errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
-        }
-        
-        // Mensagens específicas por status
-        if (axiosError.response?.status === 422) {
-          errorMessage = 'Dados inválidos. Verifique os campos.';
-        } else if (axiosError.response?.status === 409) {
-          errorMessage = 'Email já cadastrado. Tente fazer login.';
-        } else if (axiosError.response?.status === 500) {
-          errorMessage = 'Erro interno do servidor. Tente novamente.';
-        }
-      }
-      
-      setError(errorMessage);
+    } catch (error: any) {
+      console.error("Erro no cadastro:", error);
+      setError(error.response.data.messages[0]);
     } finally {
       setIsLoading(false);
     }
@@ -183,9 +153,12 @@ export default function CadastroPage() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Heart className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Conta criada com sucesso!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Conta criada com sucesso!
+            </h2>
             <p className="text-gray-600 mb-6">
-              Sua conta foi criada com sucesso. Você será redirecionado para o dashboard.
+              Sua conta foi criada com sucesso. Você será redirecionado para o
+              dashboard.
             </p>
             <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
@@ -203,7 +176,9 @@ export default function CadastroPage() {
             <Heart className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">LegadoBox</h1>
-          <p className="text-gray-600">Crie sua conta e comece a preservar suas memórias</p>
+          <p className="text-gray-600">
+            Crie sua conta e comece a preservar suas memórias
+          </p>
         </div>
 
         {/* Formulário de Cadastro */}
@@ -211,7 +186,10 @@ export default function CadastroPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Nome Completo */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Nome Completo
               </label>
               <div className="relative">
@@ -234,7 +212,10 @@ export default function CadastroPage() {
             {/* CPF e Data de Nascimento */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="cpf"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   CPF
                 </label>
                 <input
@@ -250,7 +231,10 @@ export default function CadastroPage() {
                 />
               </div>
               <div>
-                <label htmlFor="data_nascimento" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="data_nascimento"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Data de Nascimento
                 </label>
                 <div className="relative">
@@ -272,7 +256,10 @@ export default function CadastroPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 E-mail
               </label>
               <div className="relative">
@@ -295,7 +282,10 @@ export default function CadastroPage() {
             {/* Telefone e Endereço */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="telefone"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Telefone
                 </label>
                 <div className="relative">
@@ -316,7 +306,10 @@ export default function CadastroPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="endereco"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Endereço
                 </label>
                 <div className="relative">
@@ -340,7 +333,10 @@ export default function CadastroPage() {
             {/* Senha e Confirmação */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Senha
                 </label>
                 <div className="relative">
@@ -348,7 +344,7 @@ export default function CadastroPage() {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     id="password"
                     name="password"
                     value={formData.password}
@@ -371,7 +367,10 @@ export default function CadastroPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="password_confirmation"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Confirmar Senha
                 </label>
                 <div className="relative">
@@ -379,7 +378,7 @@ export default function CadastroPage() {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? "text" : "password"}
                     id="password_confirmation"
                     name="password_confirmation"
                     value={formData.password_confirmation}
@@ -407,9 +406,11 @@ export default function CadastroPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-600 text-sm">{error}</p>
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === "development" && (
                   <details className="mt-2">
-                    <summary className="text-xs text-red-500 cursor-pointer">Debug Info</summary>
+                    <summary className="text-xs text-red-500 cursor-pointer">
+                      Debug Info
+                    </summary>
                     <pre className="text-xs text-gray-600 mt-1 overflow-auto">
                       {JSON.stringify({ formData, error }, null, 2)}
                     </pre>
@@ -448,7 +449,7 @@ export default function CadastroPage() {
           {/* Link para Login */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Já tem uma conta?{' '}
+              Já tem uma conta?{" "}
               <a
                 href="/login"
                 className="text-indigo-600 hover:text-indigo-500 font-medium"

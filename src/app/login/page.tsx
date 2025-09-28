@@ -1,105 +1,63 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Heart, Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
-import api from '@/lib/api';
+import { useState } from "react";
+import { Heart, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import api from "@/lib/api";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Limpar erro quando usuário começar a digitar
-    if (error) setError('');
+    if (error) setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await api.post('/login', formData);
-      
-      console.log('Resposta da API:', response.data);
-      
+      const response = await api.post("/login", formData);
+
+      console.log("Resposta da API:", response.data);
+
       // Acessar dados dentro de 'results'
       const results = response.data.results;
-      
+
       // Verificar se a resposta tem os dados necessários
       if (!results || !results.user) {
-        throw new Error('Dados do usuário não encontrados na resposta');
+        throw new Error("Dados do usuário não encontrados na resposta");
       }
-      
+
       // Salvar token no localStorage (tentar diferentes formatos)
-      const token = results.token || results.access_token || results.accessToken;
+      const token =
+        results.token || results.access_token || results.accessToken;
       if (!token) {
-        throw new Error('Token não encontrado na resposta');
+        throw new Error("Token não encontrado na resposta");
       }
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(results.user));
-      
-      console.log('Token salvo:', token);
-      console.log('Usuário salvo:', results.user);
-      
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(results.user));
+
+      console.log("Token salvo:", token);
+      console.log("Usuário salvo:", results.user);
+
       // Redirecionar para dashboard
-      window.location.href = '/';
-    } catch (error: unknown) {
-      console.error('Erro no login:', error);
-      
-      let errorMessage = 'Erro de conexão. Tente novamente.';
-      
-      // Verificar se é um erro de validação (não é um erro de axios)
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { 
-          response?: { 
-            data?: { 
-              message?: string;
-              error?: string;
-              errors?: Record<string, string[]>;
-            };
-            status?: number;
-          } 
-        };
-        
-        // Verificar diferentes formatos de erro da API
-        if (axiosError.response?.data?.message) {
-          errorMessage = axiosError.response.data.message;
-        } else if (axiosError.response?.data?.error) {
-          errorMessage = axiosError.response.data.error;
-        } else if (axiosError.response?.data?.errors) {
-          // Tratar erros de validação
-          const errors = axiosError.response.data.errors;
-          const firstError = Object.values(errors)[0];
-          errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
-        }
-        
-        // Mensagens específicas por status
-        if (axiosError.response?.status === 401) {
-          errorMessage = 'Email ou senha incorretos.';
-        } else if (axiosError.response?.status === 422) {
-          errorMessage = 'Dados inválidos. Verifique os campos.';
-        } else if (axiosError.response?.status === 500) {
-          errorMessage = 'Erro interno do servidor. Tente novamente.';
-        }
-      }
-      
-      setError(errorMessage);
+      window.location.href = "/";
+    } catch (error: any) {
+      setError(error.response.data.messages[0]);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +84,10 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 E-mail
               </label>
               <div className="relative">
@@ -148,7 +109,10 @@ export default function LoginPage() {
 
             {/* Senha */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Senha
               </label>
               <div className="relative">
@@ -156,7 +120,7 @@ export default function LoginPage() {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
@@ -193,9 +157,11 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-600 text-sm">{error}</p>
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === "development" && (
                   <details className="mt-2">
-                    <summary className="text-xs text-red-500 cursor-pointer">Debug Info</summary>
+                    <summary className="text-xs text-red-500 cursor-pointer">
+                      Debug Info
+                    </summary>
                     <pre className="text-xs text-gray-600 mt-1 overflow-auto">
                       {JSON.stringify({ formData, error }, null, 2)}
                     </pre>
@@ -224,7 +190,7 @@ export default function LoginPage() {
           {/* Link para Cadastro */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Não tem uma conta?{' '}
+              Não tem uma conta?{" "}
               <a
                 href="/cadastro"
                 className="text-indigo-600 hover:text-indigo-500 font-medium"
