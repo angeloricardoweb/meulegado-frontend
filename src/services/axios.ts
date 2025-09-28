@@ -2,7 +2,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 export const api = axios.create({
-  baseURL: "/api",
+  baseURL: "https://meulegado.ilvinipitter.com.br/api",
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
