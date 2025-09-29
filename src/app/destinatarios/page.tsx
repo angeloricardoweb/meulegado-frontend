@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Heart, ArrowLeft, Users, Plus, X, User, Phone, Share2, FileText, ShieldCheck, ArrowUp, Edit, Trash2, Check, Star, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 // Interface para planos da API
 interface Plano {
@@ -56,6 +57,9 @@ export default function RecipientsPage() {
   const [recipients, setRecipients] = useState<Destinatario[]>(mockRecipientsData.recipients);
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [loadingPlanos, setLoadingPlanos] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [recipientToDelete, setRecipientToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -234,13 +238,38 @@ export default function RecipientsPage() {
   };
 
   const handleDeleteRecipient = (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este destinatário?')) {
-      setRecipients(prev => prev.filter(r => r.id !== id));
+    setRecipientToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!recipientToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // Simular processamento
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      setRecipients(prev => prev.filter(r => r.id !== recipientToDelete));
       setCurrentPlan(prev => ({
         ...prev,
         currentRecipients: prev.currentRecipients - 1
       }));
+      setShowDeleteModal(false);
+      setRecipientToDelete(null);
+    } catch {
+      // Em caso de erro, apenas fechar o modal
+      setShowDeleteModal(false);
+      setRecipientToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setRecipientToDelete(null);
   };
 
   const handleUpgradePlan = (plano: Plano) => {
@@ -897,6 +926,19 @@ export default function RecipientsPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Destinatário"
+        message="Tem certeza que deseja excluir este destinatário? Esta ação não pode ser desfeita."
+        confirmText="Sim, Excluir"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

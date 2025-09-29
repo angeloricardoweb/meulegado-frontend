@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Heart, ArrowLeft, Image, Video, MessageCircle, Plus, UploadCloud, X, Trash2, Save, Eye, ArrowRight, Sparkles, Check, Play, PlusCircle, Lightbulb, Camera, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ArrowLeft, Image, Video, MessageCircle, UploadCloud, X, Trash2, Save, Eye, ArrowRight, Sparkles, Check, PlusCircle, Lightbulb, Camera, Star, Crown } from 'lucide-react';
+import { useToast, ToastContainer } from '@/components/Toast';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
 
 // Dados mockados
 const mockContentData = {
@@ -18,6 +22,8 @@ const mockContentData = {
 };
 
 export default function CreateVaultContentPage() {
+  const { addToast, toasts } = useToast();
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState('photos');
   const [currentAlbum, setCurrentAlbum] = useState(1);
   const [photos, setPhotos] = useState<{ [key: number]: any[] }>({ 1: [], 2: [], 3: [], 4: [] });
@@ -26,6 +32,11 @@ export default function CreateVaultContentPage() {
   const [albumTitles, setAlbumTitles] = useState<{ [key: number]: string }>({ 1: '', 2: '', 3: '', 4: '' });
   const [showGeneratedScript, setShowGeneratedScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [planos, setPlanos] = useState<any[]>([]);
+  const [loadingPlanos, setLoadingPlanos] = useState(false);
 
   const totalPhotos = Object.values(photos).reduce((sum, album) => sum + album.length, 0);
 
@@ -42,13 +53,21 @@ export default function CreateVaultContentPage() {
     const currentAlbumPhotos = photos[currentAlbum] || [];
     
     if (currentAlbumPhotos.length + fileArray.length > mockContentData.limits.photosPerAlbum) {
-      alert(`Máximo ${mockContentData.limits.photosPerAlbum} fotos por álbum!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de fotos excedido',
+        message: `Máximo ${mockContentData.limits.photosPerAlbum} fotos por álbum!`
+      });
       return;
     }
 
     fileArray.forEach(file => {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Arquivo muito grande: ' + file.name + '. Máximo 5MB por foto.');
+        addToast({
+          type: 'error',
+          title: 'Arquivo muito grande',
+          message: `${file.name} excede o limite de 5MB por foto.`
+        });
         return;
       }
 
@@ -74,13 +93,21 @@ export default function CreateVaultContentPage() {
     const fileArray = Array.from(files);
     
     if (videos.length + fileArray.length > mockContentData.limits.videos) {
-      alert(`Máximo ${mockContentData.limits.videos} vídeos!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de vídeos excedido',
+        message: `Máximo ${mockContentData.limits.videos} vídeos!`
+      });
       return;
     }
 
     fileArray.forEach(file => {
       if (file.size > 100 * 1024 * 1024) {
-        alert('Arquivo muito grande: ' + file.name + '. Máximo 100MB por vídeo.');
+        addToast({
+          type: 'error',
+          title: 'Arquivo muito grande',
+          message: `${file.name} excede o limite de 100MB por vídeo.`
+        });
         return;
       }
 
@@ -114,7 +141,11 @@ export default function CreateVaultContentPage() {
 
   const handleAddMessage = () => {
     if (messages.length >= mockContentData.limits.messages) {
-      alert(`Máximo ${mockContentData.limits.messages} mensagens!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de mensagens excedido',
+        message: `Máximo ${mockContentData.limits.messages} mensagens!`
+      });
       return;
     }
 
@@ -142,10 +173,13 @@ export default function CreateVaultContentPage() {
 
   const handleGenerateScript = () => {
     const videoType = (document.getElementById('videoType') as HTMLSelectElement)?.value;
-    const videoDetails = (document.getElementById('videoDetails') as HTMLTextAreaElement)?.value;
 
     if (!videoType) {
-      alert('Por favor, selecione o tipo de vídeo.');
+      addToast({
+        type: 'warning',
+        title: 'Tipo de vídeo não selecionado',
+        message: 'Por favor, selecione o tipo de vídeo antes de continuar.'
+      });
       return;
     }
 
@@ -193,7 +227,11 @@ Continue criando memórias maravilhosas! ❤️`
 
   const handleSuggestMessage = (type: string) => {
     if (messages.length >= mockContentData.limits.messages) {
-      alert(`Máximo ${mockContentData.limits.messages} mensagens!`);
+      addToast({
+        type: 'warning',
+        title: 'Limite de mensagens excedido',
+        message: `Máximo ${mockContentData.limits.messages} mensagens!`
+      });
       return;
     }
 
@@ -222,20 +260,94 @@ Continue criando memórias maravilhosas! ❤️`
       albumTitles: albumTitles
     };
     localStorage.setItem('cofreContent', JSON.stringify(data));
-    alert('Progresso salvo com sucesso!');
+    addToast({
+      type: 'success',
+      title: 'Progresso salvo!',
+      message: 'Seu progresso foi salvo com sucesso.'
+    });
   };
 
   const handleFinalizeVault = () => {
     if (totalPhotos === 0 && videos.length === 0 && messages.length === 0) {
-      alert('Adicione pelo menos um conteúdo (foto, vídeo ou mensagem) antes de finalizar.');
+      addToast({
+        type: 'warning',
+        title: 'Cofre vazio',
+        message: 'Adicione pelo menos um conteúdo (foto, vídeo ou mensagem) antes de finalizar.'
+      });
       return;
     }
 
-    if (confirm('Tem certeza que deseja finalizar o cofre? Após finalizar, ele será enviado para o destinatário.')) {
+    // Verificar se há assinatura ativa
+    if (!user?.assinatura?.possui || user.assinatura.status !== 'ativa') {
+      addToast({
+        type: 'warning',
+        title: 'Assinatura necessária',
+        message: 'Você precisa de uma assinatura ativa para finalizar o cofre.'
+      });
+      handleOpenUpgradeModal();
+      return;
+    }
+
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmFinalize = async () => {
+    setIsFinalizing(true);
+    
+    try {
+      // Simular processamento
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       handleSaveProgress();
+      setShowConfirmationModal(false);
+      
       // Redirecionar para página de finalização
       window.location.href = '/criar-cofre-finalizar';
+    } catch {
+      addToast({
+        type: 'error',
+        title: 'Erro ao finalizar',
+        message: 'Ocorreu um erro ao finalizar o cofre. Tente novamente.'
+      });
+    } finally {
+      setIsFinalizing(false);
     }
+  };
+
+  const handleCancelFinalize = () => {
+    setShowConfirmationModal(false);
+  };
+
+  const fetchPlanos = async () => {
+    try {
+      setLoadingPlanos(true);
+      const response = await api.get('/planos');
+      
+      if (response.data.error === false && response.data.results) {
+        setPlanos(response.data.results);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar planos:', error);
+      addToast({
+        type: 'error',
+        title: 'Erro ao carregar planos',
+        message: 'Não foi possível carregar os planos disponíveis.'
+      });
+    } finally {
+      setLoadingPlanos(false);
+    }
+  };
+
+  const handleUpgradePlan = (plano: any) => {
+    window.open(plano.url_assinatura, '_blank');
+    setShowUpgradeModal(false);
+  };
+
+  const handleOpenUpgradeModal = () => {
+    if (planos.length === 0) {
+      fetchPlanos();
+    }
+    setShowUpgradeModal(true);
   };
 
   return (
@@ -424,7 +536,7 @@ Continue criando memórias maravilhosas! ❤️`
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(photos[currentAlbum] || []).map((photo, index) => (
                       <div key={photo.id} className="relative group bg-gray-100 rounded-lg overflow-hidden aspect-square">
-                        <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                        <img src={photo.url} alt={photo.name || 'Foto do cofre'} className="w-full h-full object-cover" />
                         <div className="absolute top-2 right-2">
                           <button 
                             onClick={() => handleRemovePhoto(currentAlbum, index)}
@@ -747,6 +859,119 @@ Continue criando memórias maravilhosas! ❤️`
           </div>
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={handleCancelFinalize}
+        onConfirm={handleConfirmFinalize}
+        title="Finalizar Cofre"
+        message="Tem certeza que deseja finalizar o cofre? Após finalizar, ele será enviado para o destinatário."
+        confirmText="Sim, Finalizar"
+        cancelText="Cancelar"
+        type="warning"
+        isLoading={isFinalizing}
+      />
+
+      {/* Upgrade Plans Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-gray-900">🚀 Escolha seu Plano</h3>
+                <button 
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {loadingPlanos ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-600">Carregando planos...</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {planos.map((plano) => (
+                    <div 
+                      key={plano.id}
+                      onClick={() => handleUpgradePlan(plano)}
+                      className={`border-2 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                        plano.mais_popular 
+                          ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 ring-2 ring-green-200' 
+                          : 'border-gray-300 bg-white hover:border-indigo-400'
+                      }`}
+                      style={{ borderColor: plano.mais_popular ? undefined : plano.cor }}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: `${plano.cor}20` }}
+                          >
+                            {plano.mais_popular ? (
+                              <Star className="w-5 h-5" style={{ color: plano.cor }} />
+                            ) : (
+                              <Crown className="w-5 h-5" style={{ color: plano.cor }} />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="text-xl font-bold text-gray-900">{plano.titulo}</h4>
+                              {plano.mais_popular && (
+                                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                                  Mais Popular
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-600">
+                              {plano.destinatarios === 999 ? 'Destinatários ilimitados' : `Até ${plano.destinatarios} destinatários`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-gray-900">R$ {plano.preco.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-sm text-gray-500">/mês</p>
+                        </div>
+                      </div>
+                      <ul className="space-y-2 text-sm text-gray-700">
+                        <li className="flex items-center space-x-2">
+                          <Check className="w-4 h-4" style={{ color: plano.cor }} />
+                          <span>
+                            {plano.destinatarios === 999 ? 'Destinatários ilimitados' : `Até ${plano.destinatarios} destinatários`}
+                          </span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <Check className="w-4 h-4" style={{ color: plano.cor }} />
+                          <span>Cofres ilimitados</span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <Check className="w-4 h-4" style={{ color: plano.cor }} />
+                          <span>Suporte prioritário</span>
+                        </li>
+                        {plano.id === 3 && (
+                          <li className="flex items-center space-x-2">
+                            <Check className="w-4 h-4" style={{ color: plano.cor }} />
+                            <span>Recursos exclusivos</span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }
