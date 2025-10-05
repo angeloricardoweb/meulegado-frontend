@@ -16,41 +16,76 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast, ToastContainer } from '@/components/Toast';
+import useSWR from "swr";
+import api from "@/lib/api";
 
-// Dados mockados
-const mockRecipients = [
-  {
-    id: 1,
-    name: "Maria Silva",
-    email: "maria@email.com",
-    relationship: "Filha",
-    registrationDate: "15/01/2024",
-    initials: "M",
-    gradient: "from-pink-400 to-purple-500",
-  },
-  {
-    id: 2,
-    name: "João Silva",
-    email: "joao@email.com",
-    relationship: "Filho",
-    registrationDate: "10/01/2024",
-    initials: "J",
-    gradient: "from-blue-400 to-cyan-500",
-  },
-  {
-    id: 3,
-    name: "Ana Santos",
-    email: "ana@email.com",
-    relationship: "Esposa",
-    registrationDate: "05/01/2024",
-    initials: "A",
-    gradient: "from-green-400 to-emerald-500",
-  },
-];
+// Interface para destinatários da API
+interface Destinatario {
+  id: number;
+  user_id: number;
+  full_name: string;
+  email: string;
+  relationship: string;
+  birth_date: string;
+  phone: string;
+  formatted_phone: string;
+  state: string;
+  city: string;
+  zip_code: string;
+  formatted_zip_code: string;
+  address: string;
+  facebook_profile: string;
+  instagram_profile: string;
+  reference1_name: string;
+  reference1_phone: string;
+  reference2_name: string;
+  reference2_phone: string;
+  notes: string;
+  has_social_media: boolean;
+  has_references: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface para informações do plano da API
+interface PlanInfo {
+  current_plan: {
+    id: number;
+    titulo: string;
+    destinatarios_limit: number;
+  };
+  recipients_limit: number;
+  remaining_recipients: number;
+  can_add_recipient: boolean;
+  completion_percentage: number;
+}
+
+// Interface para resposta da API de destinatários
+interface RecipientsResponse {
+  recipients: Destinatario[];
+  plan_info: PlanInfo;
+}
+
+// Fetcher para SWR
+const fetcher = async (url: string) => {
+  const response = await api.get(url);
+  return response.data.results;
+};
 
 export default function CreateVaultPage() {
   const router = useRouter();
   const { addToast, toasts } = useToast();
+  
+  // SWR para buscar destinatários
+  const { data: recipientsData, error, isLoading } = useSWR<RecipientsResponse>(
+    "/recipients",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
+
   const [selectedRecipient, setSelectedRecipient] = useState<number | null>(
     null
   );
@@ -61,6 +96,9 @@ export default function CreateVaultPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Dados derivados do SWR
+  const recipients = recipientsData?.recipients || [];
 
   const getPasswordStrength = (pwd: string) => {
     let strength = 0;
@@ -145,7 +183,7 @@ export default function CreateVaultPage() {
   };
 
   const selectedRecipientData = selectedRecipient
-    ? mockRecipients.find((r) => r.id === selectedRecipient)
+    ? recipients.find((r) => r.id === selectedRecipient)
     : null;
   const passwordStrengthConfig = getPasswordStrengthConfig(passwordStrength);
   const passwordsMatch = password === confirmPassword && confirmPassword !== "";
@@ -230,46 +268,84 @@ export default function CreateVaultPage() {
                   especial
                 </p>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {mockRecipients.map((recipient) => (
-                    <div
-                      key={recipient.id}
-                      onClick={() => handleRecipientSelect(recipient.id)}
-                      className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:border-indigo-500 hover:shadow-md ${
-                        selectedRecipient === recipient.id
-                          ? "border-indigo-500 bg-indigo-50"
-                          : "border-gray-200 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className={`w-12 h-12 bg-gradient-to-r ${recipient.gradient} rounded-full flex items-center justify-center text-white font-bold text-lg`}
-                        >
-                          {recipient.initials}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">
-                            {recipient.name}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {recipient.relationship} • {recipient.email}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Cadastrada em {recipient.registrationDate}
-                          </p>
-                        </div>
-                        {selectedRecipient === recipient.id && (
-                          <div className="text-indigo-600">
-                            <Check className="w-6 h-6" />
-                          </div>
-                        )}
-                      </div>
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando destinatários...</p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <X className="w-8 h-8 text-red-600" />
                     </div>
-                  ))}
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar destinatários</h3>
+                    <p className="text-gray-600 mb-4">Não foi possível carregar a lista de destinatários.</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                    >
+                      Tentar novamente
+                    </button>
+                  </div>
+                ) : recipients.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <User className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum destinatário cadastrado</h3>
+                    <p className="text-gray-600 mb-4">Você precisa cadastrar pelo menos um destinatário para criar um cofre.</p>
+                    <button
+                      onClick={() => router.push("/destinatarios")}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+                    >
+                      Cadastrar Destinatário
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {recipients.map((recipient) => (
+                      <div
+                        key={recipient.id}
+                        onClick={() => handleRecipientSelect(recipient.id)}
+                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:border-indigo-500 hover:shadow-md ${
+                          selectedRecipient === recipient.id
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            {recipient.full_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900">
+                              {recipient.full_name}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              {recipient.relationship} • {recipient.email}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {recipient.city && recipient.state 
+                                ? `${recipient.city}, ${recipient.state}`
+                                : "Localização não informada"
+                              }
+                            </p>
+                          </div>
+                          {selectedRecipient === recipient.id && (
+                            <div className="text-indigo-600">
+                              <Check className="w-6 h-6" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
+                {recipients.length > 0 && (
                   <div
-                    onClick={() => router.push("/destinatarios")}
-                    className="border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-300"
+                    onClick={() => router.push("/destinatarios?redirect=criar-cofre")}
+                    className="mt-3 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-300"
                   >
                     <div className="flex items-center justify-center space-x-3 h-full">
                       <PlusCircle className="w-8 h-8 text-gray-400" />
@@ -283,7 +359,7 @@ export default function CreateVaultPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Set Password */}
@@ -505,7 +581,7 @@ export default function CreateVaultPage() {
                     </div>
                     <div className="space-y-3">
                       <p>
-                        Olá {selectedRecipientData?.name || "Destinatário"},
+                        Olá {selectedRecipientData?.full_name || "Destinatário"},
                       </p>
                       <div className="italic text-gray-700">
                         {deliveryMessage ||
