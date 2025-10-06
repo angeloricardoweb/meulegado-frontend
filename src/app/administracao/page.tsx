@@ -502,13 +502,12 @@ function AdminDashboardContent() {
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          {/* <div className="bg-white rounded-xl shadow-md p-6 mb-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               Filtros de Busca
             </h3>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              {/* Search Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Buscar por:
@@ -522,7 +521,6 @@ function AdminDashboardContent() {
                 />
               </div>
 
-              {/* Plan Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Plano:
@@ -540,7 +538,6 @@ function AdminDashboardContent() {
                 </select>
               </div>
 
-              {/* Status Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status:
@@ -564,7 +561,6 @@ function AdminDashboardContent() {
                 </select>
               </div>
 
-              {/* Special Filters */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Filtros Especiais:
@@ -606,12 +602,12 @@ function AdminDashboardContent() {
                 <RefreshCw className="w-4 h-4" />
                 <span>Limpar</span>
               </button>
-              {/* <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
+              <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
                 <Download className="w-4 h-4" />
                 <span>Exportar</span>
-              </button> */}
+              </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Users Table */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
