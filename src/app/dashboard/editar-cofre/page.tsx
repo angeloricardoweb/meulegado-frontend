@@ -10,14 +10,10 @@ import {
   UploadCloud,
   X,
   Eye,
-  ArrowRight,
-  Check,
-  Star,
-  Crown,
+  Edit,
+  Save,
 } from "lucide-react";
 import { useToast, ToastContainer } from "@/components/Toast";
-import { ConfirmationModal } from "@/components/ConfirmationModal";
-import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -69,9 +65,8 @@ interface ContentResponse {
   };
 }
 
-function CreateVaultContentPage() {
+function EditVaultPage() {
   const { addToast, toasts } = useToast();
-  const { user } = useAuth();
   const searchParams = useSearchParams();
   const vaultId = searchParams.get("vaultId");
   const [currentTab, setCurrentTab] = useState("photos");
@@ -82,17 +77,18 @@ function CreateVaultContentPage() {
     3: "",
     4: "",
   });
-  // Estados de IA temporariamente comentados
-  // const [showGeneratedScript, setShowGeneratedScript] = useState(false);
-  // const [generatedScript, setGeneratedScript] = useState('');
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [isFinalizing, setIsFinalizing] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [planos, setPlanos] = useState<any[]>([]);
-  const [loadingPlanos, setLoadingPlanos] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [vaultData, setVaultData] = useState<any>(null);
   const [isLoadingVault, setIsLoadingVault] = useState(true);
+  const [editingContent, setEditingContent] = useState<{
+    id: number;
+    type: string;
+    title: string;
+    content: string;
+    album_number?: number;
+  } | null>(null);
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [isUploadingEdit, setIsUploadingEdit] = useState(false);
   const [photoTitle, setPhotoTitle] = useState("");
   const [photoContent, setPhotoContent] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
@@ -165,10 +161,7 @@ function CreateVaultContentPage() {
         const formData = new FormData();
         formData.append("type", "photo");
         formData.append("title", photoTitle.trim() || file.name);
-        formData.append(
-          "content",
-          photoContent.trim() || `Foto do álbum ${currentAlbum}`
-        );
+        formData.append("content", photoContent.trim() || `Foto do álbum ${currentAlbum}`);
         formData.append("album_number", currentAlbum.toString());
         formData.append("order", currentAlbumCount.toString());
         formData.append("file", file);
@@ -285,7 +278,7 @@ function CreateVaultContentPage() {
     }
   };
 
-  const handleDeleteContent = async (contentId: number, type: string) => {
+  const handleDeleteContent = async (contentId: number) => {
     if (!vaultId) {
       addToast({
         type: "error",
@@ -327,6 +320,92 @@ function CreateVaultContentPage() {
   const handleViewImage = (image: any) => {
     setSelectedImage(image);
     setShowImageModal(true);
+  };
+
+  const handleEditContent = (content: any) => {
+    setEditingContent({
+      id: content.id,
+      type: content.type,
+      title: content.title,
+      content: content.content,
+      album_number: content.album_number,
+    });
+    setNewFile(null); // Limpar arquivo selecionado anteriormente
+  };
+
+  const handleSaveEdit = async () => {
+    if (!vaultId || !editingContent) return;
+
+    setIsUploadingEdit(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("type", editingContent.type);
+      formData.append("title", editingContent.title);
+      formData.append("content", editingContent.content);
+      if (editingContent.album_number) {
+        formData.append("album_number", editingContent.album_number.toString());
+      }
+
+      // Se há um novo arquivo para upload (foto ou vídeo)
+      if (newFile) {
+        // Validar tamanho do arquivo
+        if (editingContent.type === "photo" && newFile.size > 5 * 1024 * 1024) {
+          addToast({
+            type: "error",
+            title: "Arquivo muito grande",
+            message: "A foto deve ter no máximo 5MB.",
+          });
+          setIsUploadingEdit(false);
+          return;
+        }
+
+        if (
+          editingContent.type === "video" &&
+          newFile.size > 100 * 1024 * 1024
+        ) {
+          addToast({
+            type: "error",
+            title: "Arquivo muito grande",
+            message: "O vídeo deve ter no máximo 100MB.",
+          });
+          setIsUploadingEdit(false);
+          return;
+        }
+
+        formData.append("file", newFile);
+      }
+
+      const response = await api.post(
+        `/digital-vaults/${vaultId}/contents/${editingContent.id}/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.error === false) {
+        mutateContent();
+        setEditingContent(null);
+        setNewFile(null);
+        addToast({
+          type: "success",
+          title: "Conteúdo atualizado",
+          message: response.data.messages[0],
+        });
+      }
+    } catch (error: any) {
+      addToast({
+        type: "error",
+        title: "Erro ao atualizar",
+        message:
+          error.response?.data?.messages?.[0] || "Erro ao atualizar conteúdo.",
+      });
+    } finally {
+      setIsUploadingEdit(false);
+    }
   };
 
   const handleAddMessage = async (e: React.FormEvent) => {
@@ -422,144 +501,6 @@ function CreateVaultContentPage() {
     }
   };
 
-  // Função de IA temporariamente comentada
-  // const handleGenerateScript = () => {
-  //   const videoType = (document.getElementById('videoType') as HTMLSelectElement)?.value;
-
-  //   if (!videoType) {
-  //     addToast({
-  //       type: 'warning',
-  //       title: 'Tipo de vídeo não selecionado',
-  //       message: 'Por favor, selecione o tipo de vídeo antes de continuar.'
-  //     });
-  //     return;
-  //   }
-
-  //   const scripts: { [key: string]: string } = {
-  //     birthday: `Olá minha querida! Hoje é um dia muito especial - seu aniversário! 🎉
-
-  // Quero que você saiba o quanto você significa para mim. Cada ano que passa, vejo você crescer e se tornar uma pessoa ainda mais incrível.
-
-  // Lembro-me de quando você era pequena e sempre sonhava em... [personalize com suas memórias]
-
-  // Meus desejos para você neste novo ano de vida:
-  // - Que você continue sendo essa pessoa maravilhosa
-  // - Que realize todos os seus sonhos
-  // - Que seja sempre feliz e saudável
-
-  // Parabéns, meu amor! Você merece toda a felicidade do mundo! ❤️`,
-
-  //     advice: `Minha querida, quero compartilhar alguns conselhos que aprendi ao longo da vida:
-
-  // 1. Seja sempre verdadeira consigo mesma
-  // 2. Nunca tenha medo de sonhar grande
-  // 3. Trate as pessoas com gentileza e respeito
-  // 4. Aprenda com os erros, eles são seus professores
-  // 5. Valorize as pequenas coisas da vida
-
-  // Lembre-se: você é mais forte do que imagina e capaz de superar qualquer desafio. Confie em si mesma e siga seu coração.
-
-  // Estarei sempre torcendo por você, onde quer que eu esteja. ❤️`,
-
-  //     memories: `Quero compartilhar algumas das minhas memórias mais preciosas com você...
-
-  // Lembro-me de quando... [personalize com suas memórias específicas]
-
-  // Esses momentos são tesouros que guardo no coração. Cada risada, cada conversa, cada abraço - tudo isso faz parte de quem somos.
-
-  // Obrigado(a) por me dar tantas memórias lindas para guardar. Você tornou minha vida muito mais especial e cheia de amor.
-
-  // Continue criando memórias maravilhosas! ❤️`
-  //   };
-
-  //   const script = scripts[videoType] || 'Script personalizado será gerado baseado nos detalhes fornecidos...';
-  //   setGeneratedScript(script);
-  //   setShowGeneratedScript(true);
-  // };
-
-  const handleFinalizeVault = () => {
-    if (totalPhotos === 0 && totalVideos === 0 && totalMessages === 0) {
-      addToast({
-        type: "warning",
-        title: "Cofre vazio",
-        message:
-          "Adicione pelo menos um conteúdo (foto, vídeo ou mensagem) antes de finalizar.",
-      });
-      return;
-    }
-
-    // Verificar se há assinatura ativa
-    if (!user?.assinatura?.possui || user.assinatura.status !== "ativa") {
-      addToast({
-        type: "warning",
-        title: "Assinatura necessária",
-        message: "Você precisa de uma assinatura ativa para finalizar o cofre.",
-      });
-      handleOpenUpgradeModal();
-      return;
-    }
-
-    setShowConfirmationModal(true);
-  };
-
-  const handleConfirmFinalize = async () => {
-    setIsFinalizing(true);
-
-    try {
-      // Simular processamento
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setShowConfirmationModal(false);
-
-      // Redirecionar para página de finalização
-      window.location.href = "/criar-cofre-finalizar";
-    } catch {
-      addToast({
-        type: "error",
-        title: "Erro ao finalizar",
-        message: "Ocorreu um erro ao finalizar o cofre. Tente novamente.",
-      });
-    } finally {
-      setIsFinalizing(false);
-    }
-  };
-
-  const handleCancelFinalize = () => {
-    setShowConfirmationModal(false);
-  };
-
-  const fetchPlanos = async () => {
-    try {
-      setLoadingPlanos(true);
-      const response = await api.get("/planos");
-
-      if (response.data.error === false && response.data.results) {
-        setPlanos(response.data.results);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar planos:", error);
-      addToast({
-        type: "error",
-        title: "Erro ao carregar planos",
-        message: "Não foi possível carregar os planos disponíveis.",
-      });
-    } finally {
-      setLoadingPlanos(false);
-    }
-  };
-
-  const handleUpgradePlan = (plano: any) => {
-    window.open(plano.url_assinatura, "_blank");
-    setShowUpgradeModal(false);
-  };
-
-  const handleOpenUpgradeModal = () => {
-    if (planos.length === 0) {
-      fetchPlanos();
-    }
-    setShowUpgradeModal(true);
-  };
-
   // Buscar dados do cofre para obter destinatários
   useEffect(() => {
     const fetchVaultData = async () => {
@@ -608,7 +549,7 @@ function CreateVaultContentPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold">LegadoBox</h1>
-              <p className="text-white/80 text-sm">Criar Conteúdo do Cofre</p>
+              <p className="text-white/80 text-sm">Editar Conteúdo do Cofre</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -633,41 +574,15 @@ function CreateVaultContentPage() {
         </div>
       </header>
 
-      {/* Progress Steps */}
-      <section className="py-6 px-4 bg-white border-b">
-        <div className="max-w-4xl mx-auto flex items-center justify-center space-x-8">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
-              <Check className="w-5 h-5" />
-            </div>
-            <span className="font-medium text-gray-900">Configuração</span>
-          </div>
-          <div className="w-16 h-1 bg-green-500 rounded"></div>
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center font-semibold">
-              2
-            </div>
-            <span className="font-medium text-gray-900">Conteúdo</span>
-          </div>
-          <div className="w-16 h-1 bg-gray-200 rounded"></div>
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center font-semibold">
-              3
-            </div>
-            <span className="font-medium text-gray-900">Finalizar</span>
-          </div>
-        </div>
-      </section>
-
       {/* Main Content */}
       <main className="py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              📝 Criar Conteúdo do Cofre
+              ✏️ Editar Conteúdo do Cofre
             </h2>
             <p className="text-xl text-gray-600">
-              Adicione fotos, vídeos e mensagens especiais para{" "}
+              Edite fotos, vídeos e mensagens especiais para{" "}
               {isLoadingVault
                 ? "os destinatários"
                 : vaultData?.recipients?.length > 0
@@ -875,8 +790,15 @@ function CreateVaultContentPage() {
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
+                                onClick={() => handleEditContent(photo)}
+                                className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                title="Editar foto"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() =>
-                                  handleDeleteContent(photo.id, "photo")
+                                  handleDeleteContent(photo.id)
                                 }
                                 className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                                 title="Excluir foto"
@@ -1017,14 +939,21 @@ function CreateVaultContentPage() {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleViewVideo(video)}
-                                className="text-blue-500 hover:text-blue-700 p-2"
+                                className="text-green-500 hover:text-green-700 p-2"
                                 title="Visualizar vídeo"
                               >
                                 <Eye className="w-5 h-5" />
                               </button>
                               <button
+                                onClick={() => handleEditContent(video)}
+                                className="text-blue-500 hover:text-blue-700 p-2"
+                                title="Editar vídeo"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
                                 onClick={() =>
-                                  handleDeleteContent(video.id, "video")
+                                  handleDeleteContent(video.id)
                                 }
                                 className="text-red-500 hover:text-red-700 p-2"
                                 title="Excluir vídeo"
@@ -1038,71 +967,6 @@ function CreateVaultContentPage() {
                     </div>
                   </div>
                 )}
-
-                {/* AI Script Generator - Temporariamente comentado */}
-                {/* <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 mt-8">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-900">🤖 Assistente de Script com IA</h4>
-                  </div>
-                  <p className="text-gray-600 mb-4">Precisa de ajuda para criar um roteiro para seu vídeo? Nossa IA pode ajudar!</p>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Que tipo de vídeo você quer criar?</label>
-                      <select id="videoType" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                        <option value="">Selecione o tipo...</option>
-                        <option value="birthday">Mensagem de aniversário</option>
-                        <option value="advice">Conselhos para a vida</option>
-                        <option value="memories">Compartilhar memórias</option>
-                        <option value="love">Declaração de amor</option>
-                        <option value="farewell">Mensagem de despedida</option>
-                        <option value="custom">Personalizado</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Detalhes adicionais (opcional)</label>
-                      <textarea 
-                        id="videoDetails"
-                        rows={3} 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                        placeholder="Ex: Quero falar sobre nossa viagem para Paris em 2020, mencionar o restaurante onde comemos..."
-                      />
-                    </div>
-                    
-                    <button 
-                      onClick={handleGenerateScript}
-                      className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Gerar Script com IA</span>
-                    </button>
-                  </div>
-                  
-                  {showGeneratedScript && (
-                    <div className="mt-6 p-4 bg-white rounded-lg border">
-                      <h5 className="font-medium text-gray-900 mb-2">📝 Script Gerado:</h5>
-                      <div className="text-gray-700 whitespace-pre-line">{generatedScript}</div>
-                      <div className="flex items-center space-x-2 mt-4">
-                        <button 
-                          onClick={() => navigator.clipboard.writeText(generatedScript)}
-                          className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 transition-colors"
-                        >
-                          Copiar Script
-                        </button>
-                        <button 
-                          onClick={handleGenerateScript}
-                          className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded hover:bg-purple-200 transition-colors"
-                        >
-                          Gerar Novo
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div> */}
               </div>
             )}
 
@@ -1148,8 +1012,15 @@ function CreateVaultContentPage() {
                                 Salvo
                               </span>
                               <button
+                                onClick={() => handleEditContent(message)}
+                                className="text-blue-500 hover:text-blue-700 p-1"
+                                title="Editar mensagem"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() =>
-                                  handleDeleteContent(message.id, "message")
+                                  handleDeleteContent(message.id)
                                 }
                                 className="text-red-500 hover:text-red-700 p-1"
                                 title="Excluir mensagem"
@@ -1250,7 +1121,7 @@ function CreateVaultContentPage() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() =>
-                  window.open(`/cofre?vaultId=${vaultId}`, "_blank")
+                  window.open(`/dashboard/cofre?vaultId=${vaultId}`, "_blank")
                 }
                 disabled={!vaultId}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1258,43 +1129,22 @@ function CreateVaultContentPage() {
                 <Eye className="w-5 h-5" />
                 <span>Visualizar Cofre</span>
               </button>
-
-              <button
-                onClick={handleFinalizeVault}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2"
-              >
-                <span>Finalizar Cofre</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showConfirmationModal}
-        onClose={handleCancelFinalize}
-        onConfirm={handleConfirmFinalize}
-        title="Finalizar Cofre"
-        message="Tem certeza que deseja finalizar o cofre? Após finalizar, ele será enviado para o destinatário."
-        confirmText="Sim, Finalizar"
-        cancelText="Cancelar"
-        type="warning"
-        isLoading={isFinalizing}
-      />
-
-      {/* Upgrade Plans Modal */}
-      {showUpgradeModal && (
+      {/* Edit Content Modal */}
+      {editingContent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-gray-900">
-                  🚀 Escolha seu Plano
+                  ✏️ Editar Conteúdo
                 </h3>
                 <button
-                  onClick={() => setShowUpgradeModal(false)}
+                  onClick={() => setEditingContent(null)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
@@ -1303,109 +1153,158 @@ function CreateVaultContentPage() {
             </div>
 
             <div className="p-6">
-              {loadingPlanos ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-600">Carregando planos...</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título
+                  </label>
+                  <input
+                    type="text"
+                    value={editingContent.title}
+                    onChange={(e) =>
+                      setEditingContent({
+                        ...editingContent,
+                        title: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {planos.map((plano) => (
-                    <div
-                      key={plano.id}
-                      onClick={() => handleUpgradePlan(plano)}
-                      className={`border-2 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                        plano.mais_popular
-                          ? "border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 ring-2 ring-green-200"
-                          : "border-gray-300 bg-white hover:border-indigo-400"
-                      }`}
-                      style={{
-                        borderColor: plano.mais_popular ? undefined : plano.cor,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: `${plano.cor}20` }}
-                          >
-                            {plano.mais_popular ? (
-                              <Star
-                                className="w-5 h-5"
-                                style={{ color: plano.cor }}
-                              />
-                            ) : (
-                              <Crown
-                                className="w-5 h-5"
-                                style={{ color: plano.cor }}
-                              />
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h4 className="text-xl font-bold text-gray-900">
-                                {plano.titulo}
-                              </h4>
-                              {plano.mais_popular && (
-                                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                                  Mais Popular
-                                </span>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Conteúdo
+                  </label>
+                  <textarea
+                    value={editingContent.content}
+                    onChange={(e) =>
+                      setEditingContent({
+                        ...editingContent,
+                        content: e.target.value,
+                      })
+                    }
+                    rows={6}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                </div>
+
+                {/* Upload de novo arquivo para fotos e vídeos */}
+                {(editingContent.type === "photo" ||
+                  editingContent.type === "video") && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {editingContent.type === "photo"
+                        ? "Nova Foto"
+                        : "Novo Vídeo"}{" "}
+                      (opcional)
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg p-4">
+                      <div className="text-center">
+                        {newFile ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-center space-x-2">
+                              {editingContent.type === "photo" ? (
+                                <Image className="w-8 h-8 text-blue-500" />
+                              ) : (
+                                <Video className="w-8 h-8 text-purple-500" />
                               )}
+                              <span className="font-medium text-gray-900">
+                                {newFile.name}
+                              </span>
                             </div>
-                            <p className="text-gray-600">
-                              {plano.destinatarios === 999
-                                ? "Destinatários ilimitados"
-                                : `Até ${plano.destinatarios} destinatários`}
+                            <p className="text-sm text-gray-500">
+                              {(newFile.size / (1024 * 1024)).toFixed(2)} MB
                             </p>
+                            <button
+                              type="button"
+                              onClick={() => setNewFile(null)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              Remover arquivo
+                            </button>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-gray-900">
-                            R$ {plano.preco.toFixed(2).replace(".", ",")}
-                          </p>
-                          <p className="text-sm text-gray-500">/mês</p>
-                        </div>
-                      </div>
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>
-                            {plano.destinatarios === 999
-                              ? "Destinatários ilimitados"
-                              : `Até ${plano.destinatarios} destinatários`}
-                          </span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>Cofres ilimitados</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>Suporte prioritário</span>
-                        </li>
-                        {plano.id === 3 && (
-                          <li className="flex items-center space-x-2">
-                            <Check
-                              className="w-4 h-4"
-                              style={{ color: plano.cor }}
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-center space-x-2">
+                              {editingContent.type === "photo" ? (
+                                <Image className="w-8 h-8 text-gray-400" />
+                              ) : (
+                                <Video className="w-8 h-8 text-gray-400" />
+                              )}
+                              <span className="text-gray-500">
+                                Nenhum arquivo selecionado
+                              </span>
+                            </div>
+                            <input
+                              type="file"
+                              accept={
+                                editingContent.type === "photo"
+                                  ? "image/*"
+                                  : "video/*"
+                              }
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setNewFile(e.target.files[0]);
+                                }
+                              }}
+                              className="hidden"
+                              id="editFileInput"
                             />
-                            <span>Recursos exclusivos</span>
-                          </li>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                document
+                                  .getElementById("editFileInput")
+                                  ?.click()
+                              }
+                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            >
+                              Selecionar{" "}
+                              {editingContent.type === "photo"
+                                ? "foto"
+                                : "vídeo"}
+                            </button>
+                          </div>
                         )}
-                      </ul>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2 text-center">
+                        {editingContent.type === "photo"
+                          ? "JPG, PNG • Máximo 5MB"
+                          : "MP4, MOV • Máximo 100MB"}
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end space-x-4">
+                  <button
+                    onClick={() => {
+                      setEditingContent(null);
+                      setNewFile(null);
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isUploadingEdit}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUploadingEdit ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Salvando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Salvar</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -1440,18 +1339,16 @@ function CreateVaultContentPage() {
                   Seu navegador não suporta a reprodução de vídeos.
                 </video>
               </div>
-
+              
               {selectedVideo.content && (
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     Descrição
                   </h4>
-                  <p className="text-gray-700 break-words">
-                    {selectedVideo.content}
-                  </p>
+                  <p className="text-gray-700 break-words">{selectedVideo.content}</p>
                 </div>
               )}
-
+              
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span className="truncate">{selectedVideo.file_name}</span>
                 <span className="ml-2">{selectedVideo.file_size_human}</span>
@@ -1487,18 +1384,16 @@ function CreateVaultContentPage() {
                   className="max-w-full max-h-[60vh] object-contain"
                 />
               </div>
-
+              
               {selectedImage.content && (
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     Descrição
                   </h4>
-                  <p className="text-gray-700 break-words">
-                    {selectedImage.content}
-                  </p>
+                  <p className="text-gray-700 break-words">{selectedImage.content}</p>
                 </div>
               )}
-
+              
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span className="truncate">{selectedImage.file_name}</span>
                 <span className="ml-2">{selectedImage.file_size_human}</span>
@@ -1514,7 +1409,7 @@ function CreateVaultContentPage() {
   );
 }
 
-export default function CreateVaultContentPageWrapper() {
+export default function EditVaultPageWrapper() {
   return (
     <Suspense fallback={
       <div className="bg-gray-50 min-h-screen flex items-center justify-center">
@@ -1524,7 +1419,7 @@ export default function CreateVaultContentPageWrapper() {
         </div>
       </div>
     }>
-      <CreateVaultContentPage />
+      <EditVaultPage />
     </Suspense>
   );
 }

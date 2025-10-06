@@ -168,8 +168,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login");
-    } else {
-      router.push("/dashboard");
     }
   }, [isLoading, user, router]);
 

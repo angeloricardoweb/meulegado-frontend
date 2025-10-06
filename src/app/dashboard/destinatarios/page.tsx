@@ -367,7 +367,7 @@ function RecipientsPageContent() {
 
       // Redireciona se o parâmetro redirect estiver presente
       if (redirectTo === 'criar-cofre') {
-        window.location.href = '/criar-cofre';
+        window.location.href = '/dashboard/criar-cofre';
       }
     } catch (error) {
       console.error("Erro ao adicionar destinatário:", error);

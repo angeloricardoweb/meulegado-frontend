@@ -282,20 +282,20 @@ export default function CofresPage() {
 
   const handleShareCofre = async (id: string) => {
     const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/cofre-destinatario?vaultId=${id}`;
-    
+    const shareUrl = `${baseUrl}/destinatario/cofre?vaultId=${id}`;
+
     try {
       await navigator.clipboard.writeText(shareUrl);
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 3000);
     } catch (err) {
-      console.error('Erro ao copiar link:', err);
+      console.error("Erro ao copiar link:", err);
       // Fallback para navegadores que não suportam clipboard API
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = shareUrl;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 3000);
@@ -326,7 +326,6 @@ export default function CofresPage() {
     setShowDeleteModal(false);
     setCofreToDelete(null);
   };
-
 
   // Tela de loading
   if (isLoading || isLoadingVaults) {
@@ -655,22 +654,26 @@ export default function CofresPage() {
                   {/* Actions */}
                   <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                     <div className="flex items-center justify-center space-x-4">
-                      <button 
-                        onClick={() => window.open(`/cofre?vaultId=${cofre.id}`, '_blank')}
+                      <button
+                        onClick={() =>
+                          window.open(`/cofre?vaultId=${cofre.id}`, "_blank")
+                        }
                         className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         title="Visualizar cofre"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      
-                      <button 
-                        onClick={() => window.location.href = `/editar-cofre?vaultId=${cofre.id}`}
+
+                      <button
+                        onClick={() =>
+                          (window.location.href = `/dashboard/editar-cofre?vaultId=${cofre.id}`)
+                        }
                         className="flex items-center justify-center w-10 h-10 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                         title="Editar cofre"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => handleShareCofre(cofre.id)}
                         className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -678,7 +681,7 @@ export default function CofresPage() {
                       >
                         <Share2 className="w-4 h-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => handleDeleteCofre(cofre.id)}
                         className="flex items-center justify-center w-10 h-10 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"

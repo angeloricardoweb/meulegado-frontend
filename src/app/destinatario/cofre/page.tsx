@@ -120,7 +120,7 @@ function VaultRecipientPage() {
     const currentVaultId = new URLSearchParams(window.location.search).get(
       "vaultId"
     );
-    window.location.href = `/login-destinatario?vaultId=${
+    window.location.href = `/destinatario/login?vaultId=${
       currentVaultId || "6"
     }`;
   };
@@ -791,14 +791,16 @@ function VaultRecipientPage() {
 
 export default function VaultRecipientPageWrapper() {
   return (
-    <Suspense fallback={
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando cofre...</p>
+    <Suspense
+      fallback={
+        <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando cofre...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <VaultRecipientPage />
     </Suspense>
   );

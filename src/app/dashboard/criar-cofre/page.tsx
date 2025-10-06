@@ -205,7 +205,7 @@ export default function CreateVaultPage() {
           message: 'Você será redirecionado para a etapa de conteúdo.'
         });
 
-        return router.push(`/criar-cofre-conteudo?vaultId=${vaultId}`);
+        return router.push(`/dashboard/criar-cofre-conteudo?vaultId=${vaultId}`);
       }
     } catch (err) {
       addToast({
@@ -397,7 +397,7 @@ export default function CreateVaultPage() {
 
                 {recipients.length > 0 && (
                   <div
-                    onClick={() => router.push("/destinatarios?redirect=criar-cofre")}
+                    onClick={() => router.push("/dashboard/destinatarios?redirect=criar-cofre")}
                     className="mt-3 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-300"
                   >
                     <div className="flex items-center justify-center space-x-3 h-full">

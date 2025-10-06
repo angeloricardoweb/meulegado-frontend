@@ -98,11 +98,11 @@ function FinalizeVaultPage() {
   }, [vaultId]);
 
   const handleGoHome = () => {
-    router.push('/');
+    router.push('/dashboard');
   };
 
   const handleCreateAnother = () => {
-    router.push('/criar-cofre');
+    router.push('/dashboard/criar-cofre');
   };
 
   const formatDate = (dateString: string) => {
@@ -138,7 +138,7 @@ function FinalizeVaultPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar cofre</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => router.push('/cofres')}
+            onClick={() => router.push('/dashboard/cofres')}
             className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             Voltar aos Cofres

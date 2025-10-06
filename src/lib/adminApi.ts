@@ -12,7 +12,7 @@ const vaultApi = axios.create({
 vaultApi.interceptors.request.use(
   (config) => {
     // Buscar o vault_token do localStorage
-    const vaultToken = localStorage.getItem("vault_token");
+    const vaultToken = localStorage.getItem("admin_token");
 
     if (vaultToken) {
       // Adicionar o token no header Authorization
@@ -33,19 +33,13 @@ vaultApi.interceptors.response.use(
   },
   (error) => {
     // Se o token expirou ou é inválido, limpar o localStorage
-    if (error.response?.status === 401) {
-      localStorage.removeItem("vault_token");
-      localStorage.removeItem("vault_data");
-      localStorage.removeItem("vault_expires_at");
+    if (error.response?.status === 403) {
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_data");
+      localStorage.removeItem("admin_expires_at");
 
-      // Redirecionar para a página de login do destinatário
       if (typeof window !== "undefined") {
-        const currentVaultId = new URLSearchParams(window.location.search).get(
-          "vaultId"
-        );
-        window.location.href = `/login-destinatario?vaultId=${
-          currentVaultId || ""
-        }`;
+        window.location.href = `/login`;
       }
     }
 
@@ -54,4 +48,3 @@ vaultApi.interceptors.response.use(
 );
 
 export default vaultApi;
-

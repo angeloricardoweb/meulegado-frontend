@@ -55,7 +55,7 @@ function VaultPage() {
   };
 
   const handleGoBack = () => {
-    router.push('/cofres');
+    router.push('/dashboard/cofres');
   };
 
   useEffect(() => {

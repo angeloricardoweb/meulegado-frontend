@@ -36,6 +36,11 @@ export default function LoginPage() {
       // Acessar dados dentro de 'results'
       const results = response.data.results;
 
+      if (results.user.roles[0] === "Administrador") {
+        localStorage.setItem("admin_token", results.access_token);
+        return (window.location.href = "/administracao");
+      }
+
       // Verificar se a resposta tem os dados necessários
       if (!results || !results.user) {
         throw new Error("Dados do usuário não encontrados na resposta");

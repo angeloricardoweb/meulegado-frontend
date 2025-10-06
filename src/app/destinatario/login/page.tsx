@@ -7,9 +7,9 @@ import { useSearchParams } from "next/navigation";
 
 function LoginDestinatarioPage() {
   const searchParams = useSearchParams();
-  const vaultId = searchParams.get("vaultId") || "6"; // Default para vaultId=6 se não fornecido
-  const redirect = searchParams.get("redirect") || "/cofre-destinatario?vaultId=6";
-  
+  const vaultId = searchParams.get("vaultId") || "";
+  const redirect = searchParams.get("redirect") || "";
+
   const [formData, setFormData] = useState({
     password: "",
   });
@@ -33,7 +33,10 @@ function LoginDestinatarioPage() {
     setError("");
 
     try {
-      const response = await api.post(`/vaults/${vaultId}/verify-password`, formData);
+      const response = await api.post(
+        `/vaults/${vaultId}/verify-password`,
+        formData
+      );
 
       console.log("Resposta da API:", response.data);
 
@@ -47,9 +50,12 @@ function LoginDestinatarioPage() {
 
       // Salvar token e dados do cofre no localStorage
       localStorage.setItem("vault_token", results.access_token);
-      localStorage.setItem("vault_data", JSON.stringify(results.vault_basic_info));
+      localStorage.setItem(
+        "vault_data",
+        JSON.stringify(results.vault_basic_info)
+      );
       localStorage.setItem("vault_expires_at", results.expires_at);
-      
+
       console.log("Token do cofre salvo:", results.access_token);
       console.log("Dados do cofre salvos:", results.vault_basic_info);
 
@@ -61,8 +67,8 @@ function LoginDestinatarioPage() {
     } catch (error: any) {
       console.error("Erro no login do destinatário:", error);
       setError(
-        error.response?.data?.messages?.[0] || 
-        "Erro ao verificar senha. Verifique se a senha está correta."
+        error.response?.data?.messages?.[0] ||
+          "Erro ao verificar senha. Verifique se a senha está correta."
       );
     } finally {
       setIsLoading(false);
@@ -187,14 +193,16 @@ function LoginDestinatarioPage() {
 
 export default function LoginDestinatarioPageWrapper() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <LoginDestinatarioPage />
     </Suspense>
   );
