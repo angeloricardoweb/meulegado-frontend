@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Heart, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { useState, Suspense } from "react";
+import { Heart, Eye, EyeOff, Lock, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginDestinatarioPage() {
+  const searchParams = useSearchParams();
+  const vaultId = searchParams.get("vaultId") || "";
+  const redirect = searchParams.get("redirect") || "";
+
   const [formData, setFormData] = useState({
-    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -29,40 +33,43 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await api.post("/login", formData);
+      const response = await api.post(
+        `/vaults/${vaultId}/verify-password`,
+        formData
+      );
 
       console.log("Resposta da API:", response.data);
 
       // Acessar dados dentro de 'results'
       const results = response.data.results;
 
-      if (results.user.roles[0] === "Administrador") {
-        localStorage.setItem("admin_token", results.access_token);
-        return (window.location.href = "/administracao");
-      }
-
       // Verificar se a resposta tem os dados necessários
-      if (!results || !results.user) {
-        throw new Error("Dados do usuário não encontrados na resposta");
+      if (!results || !results.access_token) {
+        throw new Error("Token de acesso não encontrado na resposta");
       }
 
-      // Salvar token no localStorage (tentar diferentes formatos)
-      const token =
-        results.token || results.access_token || results.accessToken;
-      if (!token) {
-        throw new Error("Token não encontrado na resposta");
-      }
+      // Salvar token e dados do cofre no localStorage
+      localStorage.setItem("vault_token", results.access_token);
+      localStorage.setItem(
+        "vault_data",
+        JSON.stringify(results.vault_basic_info)
+      );
+      localStorage.setItem("vault_expires_at", results.expires_at);
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(results.user));
+      console.log("Token do cofre salvo:", results.access_token);
+      console.log("Dados do cofre salvos:", results.vault_basic_info);
 
-      console.log("Token salvo:", token);
-      console.log("Usuário salvo:", results.user);
+      console.log("Token do cofre salvo:", results.access_token);
+      console.log("Dados do cofre salvos:", results.vault_basic_info);
 
-      // Redirecionar para dashboard
-      window.location.href = "/";
+      // Redirecionar para a página do cofre destinatário
+      window.location.href = redirect;
     } catch (error: any) {
-      setError(error.response.data.messages[0]);
+      console.error("Erro no login do destinatário:", error);
+      setError(
+        error.response?.data?.messages?.[0] ||
+          "Erro ao verificar senha. Verifique se a senha está correta."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -81,44 +88,22 @@ export default function LoginPage() {
             <Heart className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">LegadoBox</h1>
-          <p className="text-gray-600">Faça login para acessar sua conta</p>
+          <p className="text-gray-600">Acesso ao Cofre Digital</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Digite a senha para acessar o cofre
+          </p>
         </div>
 
         {/* Formulário de Login */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                E-mail
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                  placeholder="seu@email.com"
-                />
-              </div>
-            </div>
-
             {/* Senha */}
             <div>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Senha
+                Senha do Cofre
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -132,7 +117,7 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                   required
                   className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                  placeholder="Sua senha"
+                  placeholder="Digite a senha do cofre"
                 />
                 <button
                   type="button"
@@ -148,16 +133,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Esqueci minha senha */}
-            <div className="flex items-center justify-end">
-              <a
-                href="/recuperar-senha"
-                className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
-              >
-                Esqueci minha senha
-              </a>
-            </div>
-
             {/* Erro */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -168,7 +143,7 @@ export default function LoginPage() {
                       Debug Info
                     </summary>
                     <pre className="text-xs text-gray-600 mt-1 overflow-auto">
-                      {JSON.stringify({ formData, error }, null, 2)}
+                      {JSON.stringify({ formData, error, vaultId }, null, 2)}
                     </pre>
                   </details>
                 )}
@@ -185,24 +160,23 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span>Entrar</span>
+                  <span>Acessar Cofre</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Link para Cadastro */}
+          {/* Informações adicionais */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Não tem uma conta?{" "}
-              <a
-                href="/cadastro"
-                className="text-indigo-600 hover:text-indigo-500 font-medium"
-              >
-                Cadastre-se aqui
-              </a>
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800 text-sm">
+                <strong>ID do Cofre:</strong> {vaultId}
+              </p>
+              <p className="text-blue-600 text-xs mt-1">
+                Este token expira em 30 minutos
+              </p>
+            </div>
           </div>
         </div>
 
@@ -214,5 +188,22 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginDestinatarioPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginDestinatarioPage />
+    </Suspense>
   );
 }

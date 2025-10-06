@@ -12,16 +12,16 @@ export function middleware(request: NextRequest) {
   const authRoutes = ['/login', '/cadastro', '/recuperar-senha'];
 
   // Verificar se é uma rota protegida
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  /* const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route)); */
   
   // Verificar se é uma rota de autenticação
   const isAuthRoute = authRoutes.includes(pathname);
 
   // Se for rota protegida e não tiver token, redirecionar para login
-  if (isProtectedRoute && !token) {
+ /*  if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-
+ */
   // Se for rota de autenticação e tiver token, redirecionar para dashboard
   if (isAuthRoute && token) {
     return NextResponse.redirect(new URL('/', request.url));
