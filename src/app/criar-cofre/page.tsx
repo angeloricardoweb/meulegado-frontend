@@ -86,9 +86,8 @@ export default function CreateVaultPage() {
     }
   );
 
-  const [selectedRecipient, setSelectedRecipient] = useState<number | null>(
-    null
-  );
+  const [selectedRecipients, setSelectedRecipients] = useState<number[]>([]);
+  const [title, setTitle] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordHint, setPasswordHint] = useState("");
@@ -96,6 +95,7 @@ export default function CreateVaultPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dados derivados do SWR
   const recipients = recipientsData?.recipients || [];
@@ -135,17 +135,32 @@ export default function CreateVaultPage() {
   };
 
   const handleRecipientSelect = (id: number) => {
-    setSelectedRecipient(id);
+    setSelectedRecipients(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(recipientId => recipientId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedRecipient) {
+    if (!title.trim()) {
+      addToast({
+        type: 'warning',
+        title: 'Título obrigatório',
+        message: 'Informe um título para o cofre.'
+      });
+      return;
+    }
+
+    if (selectedRecipients.length === 0) {
       addToast({
         type: 'warning',
         title: 'Destinatário não selecionado',
-        message: 'Por favor, selecione um destinatário para o cofre.'
+        message: 'Por favor, selecione pelo menos um destinatário para o cofre.'
       });
       return;
     }
@@ -168,23 +183,42 @@ export default function CreateVaultPage() {
       return;
     }
 
-    const configData = {
-      recipient: selectedRecipient,
-      password: password,
-      passwordHint: passwordHint,
-      deliveryMessage: deliveryMessage,
-    };
+    try {
+      setIsSubmitting(true);
 
-    localStorage.setItem("cofreConfig", JSON.stringify(configData));
-    console.log("Configuração salva:", configData);
-    return router.push("/criar-cofre-conteudo");
-    // Redirecionar para próxima página
-    // window.location.href = '/create-vault-content';
+      const payload = {
+        title: title.trim(),
+        password: password,
+        password_hint: passwordHint,
+        delivery_message: deliveryMessage,
+        recipient_ids: selectedRecipients,
+      };
+
+      const response = await api.post('/digital-vaults', payload);
+
+      if (response.data.error === false) {
+        const vaultId = response.data.results.id;
+        
+        addToast({
+          type: 'success',
+          title: 'Cofre criado com sucesso',
+          message: 'Você será redirecionado para a etapa de conteúdo.'
+        });
+
+        return router.push(`/criar-cofre-conteudo?vaultId=${vaultId}`);
+      }
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Erro ao criar cofre',
+        message: 'Tente novamente em alguns instantes.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const selectedRecipientData = selectedRecipient
-    ? recipients.find((r) => r.id === selectedRecipient)
-    : null;
+  const selectedRecipientsData = recipients.filter((r) => selectedRecipients.includes(r.id));
   const passwordStrengthConfig = getPasswordStrengthConfig(passwordStrength);
   const passwordsMatch = password === confirmPassword && confirmPassword !== "";
 
@@ -252,6 +286,25 @@ export default function CreateVaultPage() {
 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <form onSubmit={handleSubmit}>
+              {/* Title */}
+              <div className="mb-8">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Título do Cofre
+                  </h3>
+                </div>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Ex: Memórias da Família"
+                  required
+                />
+              </div>
               {/* Select Recipient */}
               <div className="mb-8">
                 <div className="flex items-center space-x-3 mb-6">
@@ -265,7 +318,7 @@ export default function CreateVaultPage() {
 
                 <p className="text-gray-600 mb-6">
                   Selecione para quem você está criando este cofre digital
-                  especial
+                  especial. Você pode selecionar múltiplos destinatários.
                 </p>
 
                 {isLoading ? (
@@ -308,7 +361,7 @@ export default function CreateVaultPage() {
                         key={recipient.id}
                         onClick={() => handleRecipientSelect(recipient.id)}
                         className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:border-indigo-500 hover:shadow-md ${
-                          selectedRecipient === recipient.id
+                          selectedRecipients.includes(recipient.id)
                             ? "border-indigo-500 bg-indigo-50"
                             : "border-gray-200 bg-white"
                         }`}
@@ -331,7 +384,7 @@ export default function CreateVaultPage() {
                               }
                             </p>
                           </div>
-                          {selectedRecipient === recipient.id && (
+                          {selectedRecipients.includes(recipient.id) && (
                             <div className="text-indigo-600">
                               <Check className="w-6 h-6" />
                             </div>
@@ -571,8 +624,10 @@ export default function CreateVaultPage() {
                       </p>
                       <p>
                         <strong>Para:</strong>{" "}
-                        {selectedRecipientData?.email ||
-                          "destinatario@email.com"}
+                        {selectedRecipientsData.length > 0 
+                          ? selectedRecipientsData.map(r => r.email).join(", ")
+                          : "destinatario@email.com"
+                        }
                       </p>
                       <p>
                         <strong>Assunto:</strong> 💝 Você recebeu um Cofre
@@ -581,7 +636,10 @@ export default function CreateVaultPage() {
                     </div>
                     <div className="space-y-3">
                       <p>
-                        Olá {selectedRecipientData?.full_name || "Destinatário"},
+                        Olá {selectedRecipientsData.length > 0 
+                          ? selectedRecipientsData.map(r => r.full_name).join(", ")
+                          : "Destinatário"
+                        },
                       </p>
                       <div className="italic text-gray-700">
                         {deliveryMessage ||
@@ -617,10 +675,20 @@ export default function CreateVaultPage() {
 
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2"
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2 disabled:opacity-50"
                 >
-                  <span>Continuar para Conteúdo</span>
-                  <ArrowLeft className="w-5 h-5 rotate-180" />
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Criando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Continuar para Conteúdo</span>
+                      <ArrowLeft className="w-5 h-5 rotate-180" />
+                    </>
+                  )}
                 </button>
               </div>
             </form>

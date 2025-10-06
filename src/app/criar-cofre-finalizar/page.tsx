@@ -1,52 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Heart, ArrowLeft, CheckCircle, Star, Gift, Users, Clock, Shield, Mail, Share2, Download, Home, Sparkles, Trophy, Crown, Rainbow } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import api from '@/lib/api';
 
-// Dados mockados do cofre finalizado
-const mockVaultData = {
-  recipient: {
-    name: 'Maria Silva',
-    email: 'maria@email.com',
-    relationship: 'Filha'
-  },
-  config: {
-    passwordHint: 'A data do nosso primeiro encontro seguida do nome do nosso primeiro pet',
-    deliveryMessage: 'Minha querida filha, criei este cofre digital especial para você. Dentro há memórias, fotos e mensagens que quero que você tenha para sempre.'
-  },
-  content: {
-    totalPhotos: 24,
-    totalVideos: 2,
-    totalMessages: 3,
-    albums: [
-      { name: 'Memórias da Infância', count: 8 },
-      { name: 'Família', count: 6 },
-      { name: 'Viagens', count: 5 },
-      { name: 'Especiais', count: 5 }
-    ]
-  },
-  vaultId: 'LB-2024-001',
-  createdAt: '2024-01-15T10:30:00Z',
-  deliveryDate: '2024-01-15T18:00:00Z'
-};
+// Interface para dados do cofre
+interface VaultData {
+  id: number;
+  title: string;
+  password_hint: string;
+  delivery_message: string;
+  status: string;
+  delivered_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  recipients: Array<{
+    id: number;
+    full_name: string;
+    email: string;
+    relationship: string;
+  }>;
+  contents: Array<{
+    id: number;
+    type: string;
+    title: string;
+    content: string;
+    file_name?: string;
+    file_size?: number;
+    file_type?: string;
+    file_url?: string;
+    album_number: number;
+    order: number;
+    scheduled_delivery_date?: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    file_size_human?: string;
+    type_label: string;
+  }>;
+  recipients_count: number;
+  contents_count: number;
+  can_be_edited: boolean;
+  content_stats: {
+    photos: number;
+    videos: number;
+    messages: number;
+    total: number;
+  };
+}
 
-export default function FinalizeVaultPage() {
+function FinalizeVaultPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const vaultId = searchParams.get('vaultId');
   const [showConfetti, setShowConfetti] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [vaultData, setVaultData] = useState<VaultData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simular confetti após carregar a página
-    setTimeout(() => setShowConfetti(true), 1000);
-    
-    // Simular progresso dos steps
-    const interval = setInterval(() => {
-      setCurrentStep(prev => prev < 3 ? prev + 1 : prev);
-    }, 2000);
+    const fetchVaultData = async () => {
+      if (!vaultId) {
+        setError('ID do cofre não encontrado');
+        setIsLoading(false);
+        return;
+      }
 
-    return () => clearInterval(interval);
-  }, []);
+      try {
+        setIsLoading(true);
+        const response = await api.get(`/digital-vaults/${vaultId}`);
+        
+        if (response.data.error === false) {
+          setVaultData(response.data.results);
+          // Simular confetti após carregar os dados
+          setTimeout(() => setShowConfetti(true), 1000);
+          
+          // Simular progresso dos steps
+          const interval = setInterval(() => {
+            setCurrentStep(prev => prev < 3 ? prev + 1 : prev);
+          }, 2000);
+
+          return () => clearInterval(interval);
+        } else {
+          setError('Erro ao carregar dados do cofre');
+        }
+      } catch (err) {
+        setError('Erro ao carregar dados do cofre');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVaultData();
+  }, [vaultId]);
 
   const handleGoHome = () => {
     router.push('/');
@@ -65,6 +114,39 @@ export default function FinalizeVaultPage() {
       minute: '2-digit'
     });
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando dados do cofre...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !vaultData) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Heart className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar cofre</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => router.push('/cofres')}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Voltar aos Cofres
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -156,7 +238,7 @@ export default function FinalizeVaultPage() {
               🎉 Parabéns! Seu Cofre Digital foi Criado!
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              Você acabou de criar algo muito especial para {mockVaultData.recipient.name}
+              Você acabou de criar algo muito especial para {vaultData.recipients.map(r => r.full_name).join(', ')}
             </p>
           </div>
 
@@ -166,8 +248,8 @@ export default function FinalizeVaultPage() {
               <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Gift className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Cofre Digital #{mockVaultData.vaultId}</h2>
-              <p className="text-gray-600">Criado para {mockVaultData.recipient.name} ({mockVaultData.recipient.relationship})</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Cofre Digital #{vaultData.id}</h2>
+              <p className="text-gray-600">Criado para {vaultData.recipients.map(r => r.full_name).join(', ')}</p>
             </div>
 
             {/* Content Summary */}
@@ -176,7 +258,7 @@ export default function FinalizeVaultPage() {
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Users className="w-6 h-6 text-blue-600" />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg">{mockVaultData.content.totalPhotos}</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{vaultData.content_stats.photos}</h3>
                 <p className="text-gray-600">Fotos Especiais</p>
               </div>
               
@@ -184,7 +266,7 @@ export default function FinalizeVaultPage() {
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Heart className="w-6 h-6 text-purple-600" />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg">{mockVaultData.content.totalVideos}</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{vaultData.content_stats.videos}</h3>
                 <p className="text-gray-600">Vídeos Especiais</p>
               </div>
               
@@ -192,22 +274,22 @@ export default function FinalizeVaultPage() {
                 <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Mail className="w-6 h-6 text-pink-600" />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg">{mockVaultData.content.totalMessages}</h3>
+                <h3 className="font-bold text-gray-900 text-lg">{vaultData.content_stats.messages}</h3>
                 <p className="text-gray-600">Mensagens</p>
               </div>
             </div>
 
             {/* Albums Summary */}
             <div className="mb-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Álbuns Criados</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Conteúdo Criado</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {mockVaultData.content.albums.map((album, index) => (
-                  <div key={index} className="text-center p-3 bg-gray-50 rounded-lg">
+                {vaultData.contents.map((content, index) => (
+                  <div key={content.id} className="text-center p-3 bg-gray-50 rounded-lg">
                     <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
                       <span className="text-white font-bold text-sm">{index + 1}</span>
                     </div>
-                    <p className="font-medium text-gray-900 text-sm">{album.name}</p>
-                    <p className="text-gray-500 text-xs">{album.count} fotos</p>
+                    <p className="font-medium text-gray-900 text-sm">{content.title}</p>
+                    <p className="text-gray-500 text-xs">{content.type_label}</p>
                   </div>
                 ))}
               </div>
@@ -231,11 +313,11 @@ export default function FinalizeVaultPage() {
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">E-mail enviado com sucesso!</p>
                   <p className="text-sm text-gray-600">
-                    {mockVaultData.recipient.name} receberá o link de acesso em {mockVaultData.recipient.email}
+                    {vaultData.recipients.map(r => r.full_name).join(', ')} receberá o link de acesso em {vaultData.recipients.map(r => r.email).join(', ')}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">{formatDate(mockVaultData.deliveryDate)}</p>
+                  <p className="text-sm text-gray-500">{formatDate(vaultData.created_at)}</p>
                 </div>
               </div>
 
@@ -327,7 +409,7 @@ export default function FinalizeVaultPage() {
                 </div>
                 
                 <p className="text-center text-xl font-medium text-amber-800 bg-amber-100 rounded-lg p-4">
-                  💝 <strong>{mockVaultData.recipient.name}</strong> receberá não apenas um presente, 
+                  💝 <strong>{vaultData.recipients.map(r => r.full_name).join(', ')}</strong> receberá não apenas um presente, 
                   mas um pedaço do seu coração preservado para sempre.
                 </p>
               </div>
@@ -335,7 +417,7 @@ export default function FinalizeVaultPage() {
           </div>
 
           {/* Next Steps */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          {/* <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Próximos Passos</h3>
             
             <div className="grid md:grid-cols-3 gap-6">
@@ -381,7 +463,7 @@ export default function FinalizeVaultPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
@@ -404,5 +486,20 @@ export default function FinalizeVaultPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function FinalizeVaultPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <FinalizeVaultPage />
+    </Suspense>
   );
 }

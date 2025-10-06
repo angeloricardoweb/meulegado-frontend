@@ -9,19 +9,91 @@ import {
   Image,
   Video,
   Download,
+  DownloadCloud,
   ArrowRight,
   Play,
   ZoomIn,
   X,
-  ArrowLeft,
+  Clock,
+  User,
+  LogOut,
 } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
-import api from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import vaultApi from "@/lib/vaultApi";
 
+// Interfaces para tipagem da API
+interface VaultAccessResponse {
+  error: boolean;
+  messages: string[];
+  results: {
+    vault: {
+      id: number;
+      title: string;
+      delivery_message: string;
+      status: string;
+      created_at: string;
+      delivered_at: string | null;
+      creator: {
+        name: string;
+        email: string;
+      };
+      recipients: Array<{
+        id: number;
+        name: string;
+        email: string;
+        relationship: string;
+      }>;
+      stats: {
+        messages_count: number;
+        photos_count: number;
+        videos_count: number;
+        total_content_count: number;
+      };
+      messages: Array<{
+        id: number;
+        title: string;
+        content: string;
+        date: string;
+        preview: string;
+        order: number;
+      }>;
+      photos: {
+        album_1: Array<{
+          id: number;
+          title: string;
+          description: string;
+          file_name: string;
+          file_url: string;
+          file_size: number;
+          album_number: number;
+          order: number;
+        }>;
+        album_2: any[];
+        album_3: any[];
+        album_4: any[];
+      };
+      videos: Array<{
+        id: number;
+        title: string;
+        description: string;
+        file_name: string;
+        file_url: string;
+        file_size: number;
+        duration: string;
+        order: number;
+      }>;
+      download_info: {
+        total_size_mb: number;
+        estimated_download_time: string;
+      };
+    };
+    token_extended_until: string;
+    access_expires_in_minutes: number;
+  };
+}
 
-function VaultPage() {
+function VaultRecipientPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const vaultId = searchParams.get("vaultId");
 
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -30,9 +102,28 @@ function VaultPage() {
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
-  const [vaultData, setVaultData] = useState<any>(null);
+  const [vaultData, setVaultData] = useState<
+    VaultAccessResponse["results"]["vault"] | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleLogout = () => {
+    // Limpar dados do localStorage
+    localStorage.removeItem("vault_token");
+    localStorage.removeItem("vault_data");
+    localStorage.removeItem("vault_expires_at");
+
+    // Redirecionar para a página de login
+    const currentVaultId = new URLSearchParams(window.location.search).get(
+      "vaultId"
+    );
+    window.location.href = `/login-destinatario?vaultId=${
+      currentVaultId || "6"
+    }`;
+  };
 
   const handleOpenMessage = (message: any) => {
     setSelectedMessage(message);
@@ -54,12 +145,59 @@ function VaultPage() {
     // Implementar lógica de download
   };
 
-  const handleGoBack = () => {
-    router.push('/cofres');
+  const handleDownloadAll = async () => {
+    if (!vaultId) {
+      console.error("ID do cofre não encontrado");
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      // Fazer requisição para a API de download
+      const response = await vaultApi.get(`/vaults/${vaultId}/download`, {
+        responseType: "blob", // Importante para arquivos binários
+      });
+
+      // Criar URL do blob
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+
+      // Criar elemento de download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `cofre-${vaultData?.title || "digital"}-${
+        new Date().toISOString().split("T")[0]
+      }.zip`;
+
+      // Adicionar ao DOM, clicar e remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Limpar URL do blob
+      window.URL.revokeObjectURL(url);
+
+      console.log("Download do cofre iniciado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao baixar cofre:", error);
+      // Aqui você pode adicionar um toast de erro se tiver o sistema de notificações
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Função para formatar tamanho de arquivo
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   useEffect(() => {
-    const fetchVaultContents = async () => {
+    const fetchVaultAccess = async () => {
       if (!vaultId) {
         setError("ID do cofre não encontrado");
         setIsLoading(false);
@@ -68,22 +206,34 @@ function VaultPage() {
 
       try {
         setIsLoading(true);
-        const response = await api.get(`/digital-vaults/${vaultId}/contents`);
+        const response = await vaultApi.get(`/vaults/${vaultId}/access`);
 
         if (response.data.error === false) {
-          setVaultData(response.data.results);
+          setVaultData(response.data.results.vault);
+          setTimeRemaining(response.data.results.access_expires_in_minutes);
         } else {
-          setError("Erro ao carregar conteúdo do cofre");
+          setError("Erro ao acessar cofre");
         }
-      } catch (err) {
-        setError("Erro ao carregar conteúdo do cofre");
+      } catch {
+        setError("Erro ao acessar cofre");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchVaultContents();
+    fetchVaultAccess();
   }, [vaultId]);
+
+  // Atualizar contador de tempo
+  useEffect(() => {
+    if (timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => Math.max(0, prev - 1));
+      }, 60000); // Atualiza a cada minuto
+
+      return () => clearInterval(timer);
+    }
+  }, [timeRemaining]);
 
   if (isLoading) {
     return (
@@ -138,13 +288,13 @@ function VaultPage() {
 
   // Transformar dados da API para o formato da UI
   const transformedData = {
-    messages: vaultData.data.messages || [],
-    photos: Object.values(vaultData.data.photos || {}).flat(),
-    videos: vaultData.data.videos || [],
+    messages: vaultData.messages || [],
+    photos: Object.values(vaultData.photos || {}).flat(),
+    videos: vaultData.videos || [],
     stats: {
-      messages: vaultData.counts.messages || 0,
-      photos: vaultData.counts.photos.total || 0,
-      videos: vaultData.counts.videos || 0,
+      messages: vaultData.stats.messages_count || 0,
+      photos: vaultData.stats.photos_count || 0,
+      videos: vaultData.stats.videos_count || 0,
     },
   };
 
@@ -154,28 +304,30 @@ function VaultPage() {
       <header className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleGoBack}
-                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 py-2 transition-colors"
-                title="Cofres"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="text-sm">Cofres</span>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Heart className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Seu Cofre Digital</h1>
-                  <p className="text-white/80">Mensagens especiais para você</p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                <Heart className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Seu Cofre Digital</h1>
+                <p className="text-white/80">Mensagens especiais para você</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-white/80 text-sm">Cofre ID:</p>
-              <p className="font-semibold">{vaultId}</p>
+              <div className="flex items-center space-x-4">
+                {timeRemaining > 0 && (
+                  <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-3 py-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm">
+                      {timeRemaining} min restantes
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="text-white/80 text-sm">Cofre ID:</p>
+                  <p className="font-semibold">{vaultId}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -189,15 +341,31 @@ function VaultPage() {
               <MailOpen className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Olá! 💕</h2>
-            <p className="text-xl text-gray-600 leading-relaxed">
-              Alguém muito especial deixou estas mensagens, fotos e vídeos para
-              você. Cada item foi criado com muito amor e carinho. Explore seu
-              cofre digital e guarde essas memórias para sempre.
+            <p className="text-xl text-gray-600 leading-relaxed mb-4">
+              {vaultData.creator.name} deixou estas mensagens, fotos e vídeos
+              para você. Cada item foi criado com muito amor e carinho. Explore
+              seu cofre digital e guarde essas memórias para sempre.
             </p>
+            {vaultData.delivery_message && (
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg p-4 mb-4">
+                <p className="text-gray-700 italic">
+                  &ldquo;{vaultData.delivery_message}&rdquo;
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  - {vaultData.creator.name}
+                </p>
+              </div>
+            )}
             <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
               <div className="flex items-center space-x-1">
                 <Calendar className="w-4 h-4" />
-                <span>Total de itens: {vaultData.total_contents}</span>
+                <span>Criado em: {vaultData.created_at}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <User className="w-4 h-4" />
+                <span>
+                  Total de itens: {vaultData.stats.total_content_count}
+                </span>
               </div>
             </div>
           </div>
@@ -260,13 +428,6 @@ function VaultPage() {
             <h2 className="text-3xl font-bold text-gray-900">
               💌 Mensagens para Você
             </h2>
-            {/* <button
-              onClick={() => handleDownloadAll()}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2"
-            >
-              <Download className="w-5 h-5" />
-              <span>Baixar Todas</span>
-            </button> */}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -284,28 +445,14 @@ function VaultPage() {
                       <h3 className="font-semibold text-gray-900">
                         {message.title}
                       </h3>
-                      <p className="text-sm text-gray-500">
-                        {message.scheduled_delivery_date
-                          ? new Date(
-                              message.scheduled_delivery_date
-                            ).toLocaleDateString("pt-BR")
-                          : new Date(message.created_at).toLocaleDateString(
-                              "pt-BR"
-                            )}
-                      </p>
+                      <p className="text-sm text-gray-500">{message.date}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDownload("mensagem", message)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
                 </div>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  {message.content.length > 150
-                    ? `${message.content.substring(0, 150)}...`
-                    : message.content}
+                  {message.preview.length > 150
+                    ? `${message.preview.substring(0, 150)}...`
+                    : message.preview}
                 </p>
                 <button
                   onClick={() => handleOpenMessage(message)}
@@ -327,13 +474,6 @@ function VaultPage() {
             <h2 className="text-3xl font-bold text-gray-900">
               📸 Álbum de Memórias
             </h2>
-            {/* <button
-              onClick={() => handleDownloadAll()}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2"
-            >
-              <Download className="w-5 h-5" />
-              <span>Baixar Todas</span>
-            </button> */}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -351,7 +491,7 @@ function VaultPage() {
                   />
                 </div>
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-0 group-hover:ospacity-100 transition-opacity">
                     <ZoomIn className="w-8 h-8 text-white" />
                   </div>
                 </div>
@@ -371,13 +511,6 @@ function VaultPage() {
             <h2 className="text-3xl font-bold text-gray-900">
               🎥 Vídeos Especiais
             </h2>
-            {/* <button
-              onClick={() => handleDownloadAll()}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2"
-            >
-              <Download className="w-5 h-5" />
-              <span>Baixar Todos</span>
-            </button> */}
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -396,27 +529,18 @@ function VaultPage() {
                       {video.title}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {video.file_size_human}
+                      {formatFileSize(video.file_size)}
                     </p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {video.content}
+                  {video.description}
                 </p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-purple-600">
                     <Play className="w-4 h-4" />
                     <span className="text-sm font-medium">Reproduzir</span>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload("vídeo", video);
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -425,7 +549,7 @@ function VaultPage() {
       </section>
 
       {/* Download All Section */}
-      {/* <section className="py-12 px-4 bg-gradient-to-r from-purple-600 to-pink-600">
+      <section className="py-12 px-4 bg-gradient-to-r from-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-white">
             <h2 className="text-3xl font-bold mb-4">💾 Baixar Todo o Cofre</h2>
@@ -435,17 +559,29 @@ function VaultPage() {
             </p>
             <button
               onClick={handleDownloadAll}
-              className="bg-white text-purple-600 px-8 py-4 text-lg font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center space-x-3 mx-auto"
+              disabled={isDownloading}
+              className="bg-white text-purple-600 px-8 py-4 text-lg font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center space-x-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <DownloadCloud className="w-6 h-6" />
-              <span>Baixar Tudo (ZIP - 245 MB)</span>
+              {isDownloading ? (
+                <>
+                  <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Preparando download...</span>
+                </>
+              ) : (
+                <>
+                  <DownloadCloud className="w-6 h-6" />
+                  <span>
+                    Baixar Tudo ({vaultData.download_info.total_size_mb} MB)
+                  </span>
+                </>
+              )}
             </button>
             <p className="text-white/70 text-sm mt-4">
-              Inclui todas as mensagens, fotos e vídeos em alta qualidade
+              Tempo estimado: {vaultData.download_info.estimated_download_time}
             </p>
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8 px-4">
@@ -458,7 +594,7 @@ function VaultPage() {
           </div>
           <p className="text-gray-400 text-sm mb-4">
             Este cofre digital foi criado com muito amor e carinho especialmente
-            para você.
+            para você por {vaultData.creator.name}.
           </p>
           <p className="text-gray-500 text-xs">
             © 2024 LegadoBox. Preservando memórias, conectando corações.
@@ -499,7 +635,7 @@ function VaultPage() {
               <div className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">
                 {selectedMessage.content}
               </div>
-              <div className="mt-8 flex justify-end space-x-4">
+              {/* <div className="mt-8 flex justify-end space-x-4">
                 <button
                   onClick={() => setShowMessageModal(false)}
                   className="px-6 py-3 text-gray-600 hover:text-gray-800"
@@ -513,7 +649,7 @@ function VaultPage() {
                   <Download className="w-5 h-5" />
                   <span>Baixar</span>
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -552,20 +688,22 @@ function VaultPage() {
                 />
               </div>
 
-              {selectedPhoto.content && (
+              {selectedPhoto.description && (
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     Descrição
                   </h4>
                   <p className="text-gray-700 break-words">
-                    {selectedPhoto.content}
+                    {selectedPhoto.description}
                   </p>
                 </div>
               )}
 
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span className="truncate">{selectedPhoto.file_name}</span>
-                <span className="ml-2">{selectedPhoto.file_size_human}</span>
+                <span className="ml-2">
+                  {formatFileSize(selectedPhoto.file_size)}
+                </span>
               </div>
 
               <div className="mt-6 flex justify-end">
@@ -617,20 +755,22 @@ function VaultPage() {
                 </video>
               </div>
 
-              {selectedVideo.content && (
+              {selectedVideo.description && (
                 <div className="mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     Descrição
                   </h4>
                   <p className="text-gray-700 break-words">
-                    {selectedVideo.content}
+                    {selectedVideo.description}
                   </p>
                 </div>
               )}
 
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span className="truncate">{selectedVideo.file_name}</span>
-                <span className="ml-2">{selectedVideo.file_size_human}</span>
+                <span className="ml-2">
+                  {formatFileSize(selectedVideo.file_size)}
+                </span>
               </div>
 
               <div className="mt-6 flex justify-end">
@@ -649,7 +789,7 @@ function VaultPage() {
   );
 }
 
-export default function VaultPageWrapper() {
+export default function VaultRecipientPageWrapper() {
   return (
     <Suspense fallback={
       <div className="bg-gray-50 min-h-screen flex items-center justify-center">
@@ -659,7 +799,7 @@ export default function VaultPageWrapper() {
         </div>
       </div>
     }>
-      <VaultPage />
+      <VaultRecipientPage />
     </Suspense>
   );
 }
