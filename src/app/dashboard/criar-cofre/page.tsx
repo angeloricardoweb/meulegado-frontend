@@ -348,7 +348,7 @@ export default function CreateVaultPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum destinatário cadastrado</h3>
                     <p className="text-gray-600 mb-4">Você precisa cadastrar pelo menos um destinatário para criar um cofre.</p>
                     <button
-                      onClick={() => router.push("/destinatarios")}
+                      onClick={() => router.push("/dashboard/destinatarios")}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
                     >
                       Cadastrar Destinatário

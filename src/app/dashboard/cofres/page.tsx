@@ -717,7 +717,12 @@ export default function CofresPage() {
               {!busca &&
                 filtroStatus === "todos" &&
                 filtroPrioridade === "todos" && (
-                  <button className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2 mx-auto">
+                  <button
+                    onClick={() =>
+                      (window.location.href = "/dashboard/criar-cofre")
+                    }
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2 mx-auto"
+                  >
                     <Plus className="w-5 h-5" />
                     <span>Criar Primeiro Cofre</span>
                   </button>

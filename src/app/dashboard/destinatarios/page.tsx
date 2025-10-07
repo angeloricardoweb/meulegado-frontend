@@ -29,7 +29,7 @@ import useSWR from "swr";
 interface Plano {
   id: number;
   titulo: string;
-  preco: number;
+  preco: string; // Mudou para string conforme a API
   destinatarios: number;
   url_assinatura: string;
   mais_popular: boolean;
@@ -102,13 +102,14 @@ const fetcher = async (url: string) => {
 function RecipientsPageContent() {
   const { isLoading } = useAuth();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect');
-  
+  const redirectTo = searchParams.get("redirect");
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Destinatario | null>(null);
+  const [selectedRecipient, setSelectedRecipient] =
+    useState<Destinatario | null>(null);
   const [isLoadingRecipient, setIsLoadingRecipient] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -172,33 +173,48 @@ function RecipientsPageContent() {
 
   // Função para obter configuração do plano baseada nos dados da API
   const getCurrentPlanConfig = () => {
-    if (planInfo) {
+    if (planInfo && planInfo.current_plan) {
       const currentPlan = planInfo.current_plan;
-      const planType =
-        currentPlan.id === 1
-          ? "free"
-          : currentPlan.id === 2
-          ? "premium"
-          : "vip";
 
-      return {
-        type: planType,
-        maxRecipients: planInfo.recipients_limit,
-        currentRecipients: recipients.length,
-        remainingRecipients: planInfo.remaining_recipients,
-        canAddRecipient: planInfo.can_add_recipient,
-        completionPercentage: planInfo.completion_percentage,
-      };
+      // Buscar o plano correspondente na lista de planos disponíveis
+      const availablePlan = planos.find((plano) => plano.id === currentPlan.id);
+
+      if (availablePlan) {
+        const maxRecipients =
+          availablePlan.destinatarios === 999
+            ? Infinity
+            : availablePlan.destinatarios;
+        const currentRecipients = recipients.length;
+        const remainingRecipients =
+          maxRecipients === Infinity
+            ? Infinity
+            : Math.max(0, maxRecipients - currentRecipients);
+        const canAddRecipient =
+          maxRecipients === Infinity || currentRecipients < maxRecipients;
+        const completionPercentage =
+          maxRecipients === Infinity
+            ? 0
+            : (currentRecipients / maxRecipients) * 100;
+
+        return {
+          type: availablePlan.titulo.toLowerCase().replace(/\s+/g, "_") as any,
+          maxRecipients,
+          currentRecipients,
+          remainingRecipients,
+          canAddRecipient,
+          completionPercentage,
+        };
+      }
     }
 
-    // Fallback para dados mockados
+    // Fallback para quando não há plano ativo
     return {
-      type: "free" as const,
-      maxRecipients: 2,
+      type: "sem_plano" as const,
+      maxRecipients: 0,
       currentRecipients: recipients.length,
-      remainingRecipients: 2 - recipients.length,
-      canAddRecipient: recipients.length < 2,
-      completionPercentage: (recipients.length / 2) * 100,
+      remainingRecipients: 0,
+      canAddRecipient: false,
+      completionPercentage: 0,
     };
   };
 
@@ -210,110 +226,41 @@ function RecipientsPageContent() {
   }, []);
 
   const getPlanConfig = () => {
-    if (planInfo) {
+    if (planInfo && planInfo.current_plan) {
       const currentPlan = planInfo.current_plan;
-      const planType =
-        currentPlan.id === 1
-          ? "free"
-          : currentPlan.id === 2
-          ? "premium"
-          : "vip";
 
-      switch (planType) {
-        case "free":
-          return {
-            name: currentPlan.titulo,
-            description: `Você pode cadastrar até ${currentPlan.destinatarios_limit} destinatários`,
-            bgClass: "bg-gradient-to-r from-amber-50 to-yellow-50",
-            borderClass: "border-amber-400",
-            iconBg: "bg-amber-100",
-            iconColor: "text-amber-600",
-            buttonClass: "bg-amber-600 hover:bg-amber-700",
-            cor: "#f59e0b",
-          };
-        case "premium":
-          return {
-            name: currentPlan.titulo,
-            description: `Você pode cadastrar até ${currentPlan.destinatarios_limit} destinatários`,
-            bgClass: "bg-gradient-to-r from-green-50 to-emerald-50",
-            borderClass: "border-green-400",
-            iconBg: "bg-green-100",
-            iconColor: "text-green-600",
-            buttonClass: "bg-green-600 hover:bg-green-700",
-            cor: "#16a34a",
-          };
-        case "vip":
-          return {
-            name: currentPlan.titulo,
-            description: "Destinatários ilimitados",
-            bgClass: "bg-gradient-to-r from-purple-50 to-violet-50",
-            borderClass: "border-purple-400",
-            iconBg: "bg-purple-100",
-            iconColor: "text-purple-600",
-            buttonClass: "bg-purple-600 hover:bg-purple-700",
-            cor: "#9233ea",
-          };
-        default:
-          return {
-            name: currentPlan.titulo,
-            description: `Você pode cadastrar até ${currentPlan.destinatarios_limit} destinatários`,
-            bgClass: "bg-gradient-to-r from-amber-50 to-yellow-50",
-            borderClass: "border-amber-400",
-            iconBg: "bg-amber-100",
-            iconColor: "text-amber-600",
-            buttonClass: "bg-amber-600 hover:bg-amber-700",
-            cor: "#f59e0b",
-          };
+      // Buscar o plano correspondente na lista de planos disponíveis
+      const availablePlan = planos.find((plano) => plano.id === currentPlan.id);
+
+      if (availablePlan) {
+        return {
+          name: availablePlan.titulo,
+          description:
+            availablePlan.destinatarios === 999
+              ? "Você pode cadastrar destinatários ilimitados"
+              : `Você pode cadastrar até ${availablePlan.destinatarios} destinatários`,
+          bgClass: "bg-gradient-to-r from-blue-50 to-indigo-50",
+          borderClass: "border-blue-400",
+          iconBg: "bg-blue-100",
+          iconColor: "text-blue-600",
+          buttonClass: "bg-blue-600 hover:bg-blue-700",
+          cor: availablePlan.cor,
+        };
       }
     }
 
-    // Fallback para planos mockados
-    switch (currentPlan.type) {
-      case "free":
-        return {
-          name: "Plano Gratuito",
-          description: "Você pode cadastrar até 2 destinatários",
-          bgClass: "bg-gradient-to-r from-amber-50 to-yellow-50",
-          borderClass: "border-amber-400",
-          iconBg: "bg-amber-100",
-          iconColor: "text-amber-600",
-          buttonClass: "bg-amber-600 hover:bg-amber-700",
-          cor: "#f59e0b",
-        };
-      case "premium":
-        return {
-          name: "Plano Premium",
-          description: "Você pode cadastrar até 10 destinatários",
-          bgClass: "bg-gradient-to-r from-green-50 to-emerald-50",
-          borderClass: "border-green-400",
-          iconBg: "bg-green-100",
-          iconColor: "text-green-600",
-          buttonClass: "bg-green-600 hover:bg-green-700",
-          cor: "#16a34a",
-        };
-      case "vip":
-        return {
-          name: "Plano VIP",
-          description: "Destinatários ilimitados",
-          bgClass: "bg-gradient-to-r from-purple-50 to-violet-50",
-          borderClass: "border-purple-400",
-          iconBg: "bg-purple-100",
-          iconColor: "text-purple-600",
-          buttonClass: "bg-purple-600 hover:bg-purple-700",
-          cor: "#9233ea",
-        };
-      default:
-        return {
-          name: "Plano Gratuito",
-          description: "Você pode cadastrar até 2 destinatários",
-          bgClass: "bg-gradient-to-r from-amber-50 to-yellow-50",
-          borderClass: "border-amber-400",
-          iconBg: "bg-amber-100",
-          iconColor: "text-amber-600",
-          buttonClass: "bg-amber-600 hover:bg-amber-700",
-          cor: "#f59e0b",
-        };
-    }
+    // Fallback para quando não há plano ativo
+    return {
+      name: "Sem Plano Ativo",
+      description:
+        "Você precisa de um plano ativo para cadastrar destinatários",
+      bgClass: "bg-gradient-to-r from-red-50 to-rose-50",
+      borderClass: "border-red-400",
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
+      buttonClass: "bg-red-600 hover:bg-red-700",
+      cor: "#dc2626",
+    };
   };
 
   const planConfig = getPlanConfig();
@@ -336,10 +283,10 @@ function RecipientsPageContent() {
     try {
       // Remove máscaras antes de enviar para a API
       const dataToSend = removeMasks(formData);
-      
+
       // Chama a API para criar o destinatário
-      await api.post('/recipients', dataToSend);
-      
+      await api.post("/recipients", dataToSend);
+
       // Atualiza o cache do SWR após sucesso
       await mutate();
 
@@ -366,11 +313,18 @@ function RecipientsPageContent() {
       setShowAddForm(false);
 
       // Redireciona se o parâmetro redirect estiver presente
-      if (redirectTo === 'criar-cofre') {
-        window.location.href = '/dashboard/criar-cofre';
+      if (redirectTo === "criar-cofre") {
+        window.location.href = "/dashboard/criar-cofre";
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao adicionar destinatário:", error);
+
+      // Exibir mensagem de erro da API
+      if (error?.response?.data?.messages?.[0]) {
+        alert(error.response.data.messages[0]);
+      } else {
+        alert("Erro ao adicionar destinatário. Tente novamente.");
+      }
     }
   };
 
@@ -393,8 +347,16 @@ function RecipientsPageContent() {
 
       setShowDeleteModal(false);
       setRecipientToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao deletar destinatário:", error);
+
+      // Exibir mensagem de erro da API
+      if (error?.response?.data?.messages?.[0]) {
+        alert(error.response.data.messages[0]);
+      } else {
+        alert("Erro ao deletar destinatário. Tente novamente.");
+      }
+
       setShowDeleteModal(false);
       setRecipientToDelete(null);
     } finally {
@@ -472,18 +434,25 @@ function RecipientsPageContent() {
     try {
       // Remove máscaras antes de enviar para a API
       const dataToSend = removeMasks(formData);
-      
+
       // Chama a API para atualizar o destinatário
       await api.put(`/recipients/${selectedRecipient.id}`, dataToSend);
-      
+
       // Atualiza o cache do SWR após sucesso
       await mutate();
-      
+
       // Fecha o modal
       setShowEditModal(false);
       setSelectedRecipient(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao editar destinatário:", error);
+
+      // Exibir mensagem de erro da API
+      if (error?.response?.data?.messages?.[0]) {
+        alert(error.response.data.messages[0]);
+      } else {
+        alert("Erro ao editar destinatário. Tente novamente.");
+      }
     } finally {
       setIsEditing(false);
     }
@@ -573,8 +542,8 @@ function RecipientsPageContent() {
           </div>
           <button
             onClick={() => {
-              if (redirectTo === 'criar-cofre') {
-                window.location.href = '/criar-cofre';
+              if (redirectTo === "criar-cofre") {
+                window.location.href = "/criar-cofre";
               } else {
                 window.history.back();
               }
@@ -583,7 +552,9 @@ function RecipientsPageContent() {
           >
             <ArrowLeft className="w-5 h-5" />
             <span>
-              {redirectTo === 'criar-cofre' ? 'Voltar para Criar Cofre' : 'Voltar ao Dashboard'}
+              {redirectTo === "criar-cofre"
+                ? "Voltar para Criar Cofre"
+                : "Voltar ao Dashboard"}
             </span>
           </button>
         </div>
@@ -634,7 +605,7 @@ function RecipientsPageContent() {
                     </span>
                     <Users className="w-5 h-5 text-gray-500" />
                   </div>
-                  {currentPlan.type !== "vip" && (
+                  {currentPlan.maxRecipients !== Infinity && (
                     <button
                       onClick={() => setShowUpgradeModal(true)}
                       className={`${planConfig.buttonClass} text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2`}
@@ -647,7 +618,7 @@ function RecipientsPageContent() {
               </div>
 
               {/* Progress Bar */}
-              {currentPlan.type !== "vip" && (
+              {currentPlan.maxRecipients !== Infinity && (
                 <div className="mt-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-1">
                     <span>Destinatários cadastrados</span>
@@ -1022,7 +993,10 @@ function RecipientsPageContent() {
                           type="url"
                           value={formData.facebook_profile}
                           onChange={(e) =>
-                            handleInputChange("facebook_profile", e.target.value)
+                            handleInputChange(
+                              "facebook_profile",
+                              e.target.value
+                            )
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Ex: https://facebook.com/maria.silva"
@@ -1037,7 +1011,10 @@ function RecipientsPageContent() {
                           type="url"
                           value={formData.instagram_profile}
                           onChange={(e) =>
-                            handleInputChange("instagram_profile", e.target.value)
+                            handleInputChange(
+                              "instagram_profile",
+                              e.target.value
+                            )
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Ex: https://instagram.com/maria.silva"
@@ -1281,10 +1258,7 @@ function RecipientsPageContent() {
                           </div>
                           <div className="text-right">
                             <p className="text-2xl font-bold text-gray-900">
-                              R${" "}
-                              {Number(plano.preco)
-                                .toFixed(2)
-                                .replaceAll(".", ",")}
+                              R$ {plano.preco.replace(".", ",")}
                             </p>
                             <p className="text-sm text-gray-500">/mês</p>
                           </div>
@@ -1382,24 +1356,37 @@ function RecipientsPageContent() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                      <p className="text-gray-900">{selectedRecipient.full_name}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nome Completo
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.full_name}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        E-mail
+                      </label>
                       <p className="text-gray-900">{selectedRecipient.email}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Relacionamento</label>
-                      <p className="text-gray-900 capitalize">{selectedRecipient.relationship}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Relacionamento
+                      </label>
+                      <p className="text-gray-900 capitalize">
+                        {selectedRecipient.relationship}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Data de Nascimento
+                      </label>
                       <p className="text-gray-900">
-                        {selectedRecipient.birth_date 
-                          ? new Date(selectedRecipient.birth_date).toLocaleDateString('pt-BR')
-                          : 'Não informado'
-                        }
+                        {selectedRecipient.birth_date
+                          ? new Date(
+                              selectedRecipient.birth_date
+                            ).toLocaleDateString("pt-BR")
+                          : "Não informado"}
                       </p>
                     </div>
                   </div>
@@ -1413,30 +1400,55 @@ function RecipientsPageContent() {
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                      <p className="text-gray-900">{selectedRecipient.formatted_phone || selectedRecipient.phone || 'Não informado'}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Telefone
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.formatted_phone ||
+                          selectedRecipient.phone ||
+                          "Não informado"}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                      <p className="text-gray-900">{selectedRecipient.state || 'Não informado'}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Estado
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.state || "Não informado"}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
-                      <p className="text-gray-900">{selectedRecipient.city || 'Não informado'}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cidade
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.city || "Não informado"}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
-                      <p className="text-gray-900">{selectedRecipient.formatted_zip_code || selectedRecipient.zip_code || 'Não informado'}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        CEP
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.formatted_zip_code ||
+                          selectedRecipient.zip_code ||
+                          "Não informado"}
+                      </p>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
-                      <p className="text-gray-900">{selectedRecipient.address || 'Não informado'}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Endereço
+                      </label>
+                      <p className="text-gray-900">
+                        {selectedRecipient.address || "Não informado"}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Social Media */}
-                {(selectedRecipient.facebook_profile || selectedRecipient.instagram_profile) && (
+                {(selectedRecipient.facebook_profile ||
+                  selectedRecipient.instagram_profile) && (
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
                       <Share2 className="w-5 h-5 text-purple-600" />
@@ -1445,10 +1457,12 @@ function RecipientsPageContent() {
                     <div className="grid md:grid-cols-2 gap-4">
                       {selectedRecipient.facebook_profile && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
-                          <a 
-                            href={selectedRecipient.facebook_profile} 
-                            target="_blank" 
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Facebook
+                          </label>
+                          <a
+                            href={selectedRecipient.facebook_profile}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 break-all"
                           >
@@ -1458,10 +1472,12 @@ function RecipientsPageContent() {
                       )}
                       {selectedRecipient.instagram_profile && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
-                          <a 
-                            href={selectedRecipient.instagram_profile} 
-                            target="_blank" 
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Instagram
+                          </label>
+                          <a
+                            href={selectedRecipient.instagram_profile}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 break-all"
                           >
@@ -1474,7 +1490,8 @@ function RecipientsPageContent() {
                 )}
 
                 {/* References */}
-                {(selectedRecipient.reference1_name || selectedRecipient.reference2_name) && (
+                {(selectedRecipient.reference1_name ||
+                  selectedRecipient.reference2_name) && (
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
                       <Users className="w-5 h-5 text-orange-600" />
@@ -1484,24 +1501,42 @@ function RecipientsPageContent() {
                       {selectedRecipient.reference1_name && (
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Referência 1</label>
-                            <p className="text-gray-900">{selectedRecipient.reference1_name}</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Referência 1
+                            </label>
+                            <p className="text-gray-900">
+                              {selectedRecipient.reference1_name}
+                            </p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                            <p className="text-gray-900">{selectedRecipient.reference1_phone || 'Não informado'}</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Telefone
+                            </label>
+                            <p className="text-gray-900">
+                              {selectedRecipient.reference1_phone ||
+                                "Não informado"}
+                            </p>
                           </div>
                         </div>
                       )}
                       {selectedRecipient.reference2_name && (
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Referência 2</label>
-                            <p className="text-gray-900">{selectedRecipient.reference2_name}</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Referência 2
+                            </label>
+                            <p className="text-gray-900">
+                              {selectedRecipient.reference2_name}
+                            </p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                            <p className="text-gray-900">{selectedRecipient.reference2_phone || 'Não informado'}</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Telefone
+                            </label>
+                            <p className="text-gray-900">
+                              {selectedRecipient.reference2_phone ||
+                                "Não informado"}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -1575,7 +1610,12 @@ function RecipientsPageContent() {
                 <p className="text-gray-600">Carregando...</p>
               </div>
             ) : (
-              <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSaveEdit();
+                }}
+              >
                 {/* Basic Information */}
                 <div className="bg-gray-50 rounded-lg p-6 mb-6 border-l-4 border-indigo-500">
                   <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
@@ -1845,10 +1885,7 @@ function RecipientsPageContent() {
                           type="text"
                           value={formData.reference1_name}
                           onChange={(e) =>
-                            handleInputChange(
-                              "reference1_name",
-                              e.target.value
-                            )
+                            handleInputChange("reference1_name", e.target.value)
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Ex: João Santos (amigo próximo)"
@@ -1884,10 +1921,7 @@ function RecipientsPageContent() {
                           type="text"
                           value={formData.reference2_name}
                           onChange={(e) =>
-                            handleInputChange(
-                              "reference2_name",
-                              e.target.value
-                            )
+                            handleInputChange("reference2_name", e.target.value)
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Ex: Ana Costa (colega de trabalho)"
@@ -1982,14 +2016,16 @@ function RecipientsPageContent() {
 
 export default function RecipientsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <RecipientsPageContent />
     </Suspense>
   );
