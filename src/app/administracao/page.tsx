@@ -223,11 +223,9 @@ function AdminDashboardContent() {
       const resp = await api.get(`/admin/users/${user.id}`);
       if (resp.data?.error === false && resp.data.results) {
         setSelectedDetails(resp.data.results as AdminUserDetailsResponse);
-      } else {
-        addToast({ type: "error", title: "Erro ao carregar usuário" });
       }
-    } catch {
-      addToast({ type: "error", title: "Erro ao carregar usuário" });
+    } catch (error: any) {
+      addToast({ type: "error", title: error.response.data.messages[0] });
     } finally {
       setLoadingDetails(false);
     }
@@ -277,8 +275,8 @@ function AdminDashboardContent() {
           addToast({ type: "error", title: "Falha ao disparar entrega" });
         }
       }
-    } catch {
-      addToast({ type: "error", title: "Ocorreu um erro na operação" });
+    } catch (error: any) {
+      addToast({ type: "error", title: error.response.data.messages[0] });
     } finally {
       setConfirmLoading(false);
       setConfirmOpen(false);
@@ -312,8 +310,11 @@ function AdminDashboardContent() {
       if (resp.data?.error === false && resp.data.results?.statistics) {
         setStatistics(resp.data.results.statistics as AdminStatistics);
       }
-    } catch {
-      addToast({ type: "error", title: "Erro ao carregar estatísticas" });
+    } catch (error: any) {
+      if (error.status === 401) {
+        return router.push("/login");
+      }
+      addToast({ type: "error", title: error.response.data.messages[0] });
     } finally {
       setLoadingStats(false);
     }
