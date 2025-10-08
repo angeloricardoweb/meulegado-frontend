@@ -1,750 +1,870 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Heart,
-  Archive,
+  PlayCircle,
+  Gift,
+  FileText,
+  Key,
   MessageCircle,
   Users,
-  Gift,
-  Plus,
-  MoreVertical,
-  User,
-  LogOut,
-  UserPlus,
-  X,
-  Check,
-  Star,
-  Crown,
+  ChevronDown,
+  Mail,
+  Info,
 } from "lucide-react";
-import LuckyNumberModal from "@/components/LuckyNumberModal";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast, ToastContainer } from "@/components/Toast";
 import api from "@/lib/api";
 
-// Interfaces para dados da API
-interface DashboardUser {
+interface Plano {
   id: number;
-  name: string;
-  email: string;
-  current_plan: string;
-  profile_complete: boolean;
+  titulo: string;
+  preco: string;
+  destinatarios: number;
+  url_assinatura: string;
+  mais_popular: boolean;
+  cor: string;
 }
 
-interface DashboardStatistics {
-  total_vaults: number;
-  total_messages: number;
-  total_recipients: number;
-}
-
-interface RecentActivity {
-  type: string;
-  description: string;
-  date: string;
-  date_formatted: string;
-  icon: string;
-  color: string;
-}
-
-interface LuckyNumber {
-  number: string;
-  subscription_months: number;
-  months_remaining: number;
-  progress_percentage: number;
-  is_eligible: boolean;
-  next_draw_date: string;
-}
-
-interface DashboardData {
-  user: DashboardUser;
-  statistics: DashboardStatistics;
-  recent_activities: RecentActivity[];
-  lucky_number: LuckyNumber;
-}
-
-// Dados mockados removidos - agora usando dados da API
-
-export default function Dashboard() {
-  const { user, isLoading, logout } = useAuth();
+export default function Home() {
+  const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { addToast, toasts } = useToast();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showLuckyModal, setShowLuckyModal] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [planos, setPlanos] = useState<any[]>([]);
-  const [loadingPlanos, setLoadingPlanos] = useState(false);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
-  );
-  const [loadingDashboard, setLoadingDashboard] = useState(true);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
-  const hasFetchedDashboard = useRef(false);
+  const [planos, setPlanos] = useState<Plano[]>([]);
+  const [loadingPlanos, setLoadingPlanos] = useState(true);
+  const [showReceiveLegacyModal, setShowReceiveLegacyModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const handleUserMenuToggle = () => {
-    setShowUserMenu(!showUserMenu);
-  };
-
-  const handleLuckyModalToggle = () => {
-    setShowLuckyModal(!showLuckyModal);
-  };
-
-  const fetchDashboardData = useCallback(async () => {
-    if (hasFetchedDashboard.current) return;
-
-    try {
-      hasFetchedDashboard.current = true;
-      setLoadingDashboard(true);
-      setDashboardError(null);
-      const response = await api.get("/dashboard");
-
-      if (response.data.error === false && response.data.results) {
-        setDashboardData(response.data.results);
-      } else {
-        setDashboardError("Erro ao carregar dados do dashboard");
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados do dashboard:", error);
-      setDashboardError("Erro ao carregar dados do dashboard");
-      addToast({
-        type: "error",
-        title: "Erro ao carregar dashboard",
-        message: "Não foi possível carregar os dados do dashboard.",
-      });
-    } finally {
-      setLoadingDashboard(false);
-    }
-  }, [addToast]);
+  useEffect(() => {
+    fetchPlanos();
+  }, []);
 
   const fetchPlanos = async () => {
     try {
       setLoadingPlanos(true);
       const response = await api.get("/planos");
-
       if (response.data.error === false && response.data.results) {
         setPlanos(response.data.results);
       }
     } catch (error) {
       console.error("Erro ao buscar planos:", error);
-      addToast({
-        type: "error",
-        title: "Erro ao carregar planos",
-        message: "Não foi possível carregar os planos disponíveis.",
-      });
     } finally {
       setLoadingPlanos(false);
     }
   };
 
-  const handleUpgradePlan = (plano: any) => {
+  const toggleFaq = (id: number) => {
+    setOpenFaq(openFaq === id ? null : id);
+  };
+
+  const handleSelectPlan = (plano: Plano) => {
     window.open(plano.url_assinatura, "_blank");
-    setShowUpgradeModal(false);
   };
 
-  const handleOpenUpgradeModal = () => {
-    if (planos.length === 0) {
-      fetchPlanos();
-    }
-    setShowUpgradeModal(true);
-  };
-
-  const handleAction = (action: string) => {
-    if (action === "dev") {
-      addToast({
-        type: "info",
-        title: "Funcionalidade em desenvolvimento",
-        message: "Esta funcionalidade estará disponível em breve!",
-      });
-      return;
-    }
-    return router.push(action);
-  };
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  // Redirecionar para login se não estiver autenticado
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    } else {
+  const handleStartFreeTrial = () => {
+    if (user) {
       router.push("/dashboard");
+    } else {
+      router.push("/cadastro");
     }
-  }, [isLoading, user, router]);
+  };
 
-  // Buscar dados do dashboard quando o usuário estiver autenticado
-  useEffect(() => {
-    if (user && !isLoading) {
-      fetchDashboardData();
+  const handleLoginOrDashboard = () => {
+    if (user) {
+      router.push("/dashboard");
+    } else {
+      router.push("/login");
     }
-  }, [user, isLoading, fetchDashboardData]);
+  };
 
-  // Mostrar loading enquanto carrega dados do usuário e dashboard
-  if (isLoading || loadingDashboard) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {isLoading ? "Carregando..." : "Carregando dashboard..."}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const handleReceiveLegacy = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push("/destinatario/login");
+  };
 
-  // Se não estiver autenticado, mostrar loading (redirecionamento em andamento)
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecionando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Se houver erro ao carregar dashboard, mostrar erro
-  if (dashboardError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-8 h-8 text-red-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Erro ao carregar dashboard
-          </h2>
-          <p className="text-gray-600 mb-6">{dashboardError}</p>
-          <button
-            onClick={() => {
-              hasFetchedDashboard.current = false;
-              fetchDashboardData();
-            }}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Tentar Novamente
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert("Mensagem enviada com sucesso!");
+    setShowContactModal(false);
+  };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Incomplete Data Warning */}
-      {/* {showIncompleteWarning && (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 animate-slide-down">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Info className="w-5 h-5 text-amber-600" />
-              <div>
-                <p className="text-amber-800 font-medium">
-                  Complete seus dados pessoais
-                </p>
-                <p className="text-amber-700 text-sm">
-                  Alguns dados da sua conta estão incompletos. Complete para uma
-                  melhor experiência.
-          </p>
-        </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handleAction("complete-data")}
-                className="text-amber-600 hover:text-amber-800 font-medium text-sm"
-              >
-                Completar agora
-              </button>
-              <button
-                onClick={handleCloseWarning}
-                className="text-amber-400 hover:text-amber-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-                    </div>
-                  )} */}
-
+    <div className="bg-white">
       {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-6 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                <Heart className="w-7 h-7" />
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-800 rounded-lg flex items-center justify-center">
+                <Heart className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">LegadoBox</h1>
-                <p className="text-white/80">
-                  Olá, {dashboardData?.user.name || user?.name || "Usuário"}!
-                  Bem-vindo de volta
-                </p>
-              </div>
+              <span className="text-2xl font-bold text-gray-900">
+                LegadoBox
+              </span>
             </div>
 
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={handleUserMenuToggle}
-                className="flex items-center space-x-3 text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <a
+                href="#inicio"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
               >
-                <div className="text-right">
-                  <p className="font-medium">
-                    {dashboardData?.user.name || user?.name || "Usuário"}
-                  </p>
-                  <p className="text-sm text-white/60">
-                    Plano{" "}
-                    {dashboardData?.user.current_plan ||
-                      user?.assinatura?.plano ||
-                      user?.plan ||
-                      "Premium"}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <MoreVertical className="w-5 h-5" />
-                </div>
-              </button>
+                Início
+              </a>
+              <a
+                href="#como-funciona"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+              >
+                Como Funciona
+              </a>
+              <a
+                href="#planos"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+              >
+                Planos
+              </a>
+              <a
+                href="#faq"
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+              >
+                FAQ
+              </a>
+            </nav>
 
-              {/* Dropdown Menu */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                  <button
-                    onClick={() => handleAction("/dashboard/perfil")}
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Meu Perfil</span>
-                  </button>
-                  <hr className="my-1" />
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center space-x-3"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Sair</span>
-                  </button>
-                </div>
-              )}
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-3">
+              {/* <button
+                onClick={() => setShowReceiveLegacyModal(true)}
+                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:shadow-lg flex items-center space-x-2"
+              >
+                <Gift className="w-4 h-4" />
+                <span>Receber Legado</span>
+              </button> */}
+              <button
+                onClick={handleLoginOrDashboard}
+                className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-4 py-2 rounded-lg font-medium transition-all hover:shadow-lg"
+              >
+                {isLoading ? "..." : user ? "Dashboard" : "Login"}
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Subscription Status Card */}
-          {user?.assinatura && (
-            <div
-              className={`rounded-2xl p-6 mb-8 border ${
-                user.assinatura.possui && user.assinatura.status === "ativa"
-                  ? "bg-gradient-to-r from-green-50 to-blue-50 border-green-200"
-                  : "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200"
-              }`}
+      {/* Hero Section */}
+      <section
+        id="inicio"
+        className="bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white py-20"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+            O que você gostaria
+            <br />
+            <span className="text-blue-200">de dizer...</span>
+          </h1>
+          <h2 className="text-3xl md:text-4xl font-light mb-8 text-blue-100">
+            quando não estiver mais aqui?
+          </h2>
+          <p className="text-xl md:text-2xl mb-12 text-blue-100 max-w-4xl mx-auto leading-relaxed">
+            Preserve suas memórias, instruções e mensagens de amor em um cofre
+            digital seguro. Garanta que suas palavras mais importantes cheguem
+            às pessoas certas no momento certo.
+          </p>
+
+          {/* Single CTA Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleStartFreeTrial}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition-all hover:shadow-2xl transform hover:scale-105 flex items-center space-x-3"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      user.assinatura.possui &&
-                      user.assinatura.status === "ativa"
-                        ? "bg-green-100"
-                        : "bg-amber-100"
-                    }`}
-                  >
-                    <Heart
-                      className={`w-6 h-6 ${
-                        user.assinatura.possui &&
-                        user.assinatura.status === "ativa"
-                          ? "text-green-600"
-                          : "text-amber-600"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {user.assinatura.possui &&
-                      user.assinatura.status === "ativa"
-                        ? "Assinatura Ativa"
-                        : "Sem Assinatura Ativa"}
-                    </h3>
-                    <p className="text-gray-600">
-                      {user.assinatura.possui &&
-                      user.assinatura.status === "ativa" ? (
-                        <>
-                          Plano {user.assinatura.plano} • Vence em{" "}
-                          {new Date(
-                            user.assinatura.vence_em
-                          ).toLocaleDateString("pt-BR")}
-                        </>
-                      ) : (
-                        "Escolha um plano para desbloquear todos os recursos"
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {user.assinatura.possui &&
-                  user.assinatura.status === "ativa" ? (
-                    <div className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                      Ativa
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleOpenUpgradeModal}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Ver Planos
-                    </button>
-                  )}
-                </div>
+              <PlayCircle className="w-6 h-6" />
+              <span>Comece seu Teste Grátis</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Como Funciona */}
+      <section id="como-funciona" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Como Funciona
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Um processo simples, seguro e humano para garantir que sua voz
+              será ouvida, mesmo quando você não estiver mais aqui.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Step 1 */}
+            <div className="text-center hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">
+                1
               </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Crie seu cofre digital seguro
+              </h3>
+              <p className="text-gray-600">
+                Cadastre-se e configure seu espaço protegido. Somente você
+                controla quem poderá acessar suas mensagens.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">
+                2
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Deixe mensagens que importam
+              </h3>
+              <p className="text-gray-600">
+                Escreva cartas, grave vídeos, adicione fotos e registre
+                instruções e despedidas especiais que farão diferença para quem
+                você ama.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">
+                3
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Escolha seus destinatários
+              </h3>
+              <p className="text-gray-600">
+                Defina quem receberá cada mensagem. Cadastre familiares, amigos
+                e pessoas especiais.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="text-center hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">
+                4
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Nós garantimos a entrega
+              </h3>
+              <p className="text-gray-600">
+                Confirmamos oficialmente seu falecimento e, com toda segurança e
+                privacidade, entregamos suas mensagens no momento certo.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* O que você pode preservar */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              O que você pode preservar
+            </h2>
+            <p className="text-xl text-gray-600">
+              Suas memórias e instruções mais importantes, organizadas e
+              protegidas
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Mensagens para filhos */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 hover:shadow-xl hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mb-6">
+                <Heart className="w-8 h-8 text-pink-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Mensagens para filhos
+              </h3>
+              <p className="text-gray-600">
+                Cartas de amor, conselhos para o futuro, vídeos especiais, fotos
+                de família e palavras de encorajamento para momentos especiais da
+                vida dos seus filhos.
+              </p>
+            </div>
+
+            {/* Instruções sobre bens */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 hover:shadow-xl hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                <FileText className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Instruções sobre bens
+              </h3>
+              <p className="text-gray-600">
+                Localização de documentos importantes, instruções sobre
+                investimentos, informações sobre seguros e orientações para a
+                família.
+              </p>
+            </div>
+
+            {/* Senhas e contas */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 hover:shadow-xl hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                <Key className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Senhas e contas importantes
+              </h3>
+              <p className="text-gray-600">
+                Acesso a contas bancárias, redes sociais, e-mails e outros
+                serviços digitais que precisam ser gerenciados pela família.
+              </p>
+            </div>
+
+            {/* Recado final */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 hover:shadow-xl hover:transform hover:-translate-y-1 transition-all duration-300">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                <MessageCircle className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Recado final para quem você ama
+              </h3>
+              <p className="text-gray-600">
+                Suas últimas palavras de amor, gratidão e despedida para cônjuge,
+                familiares e amigos especiais que marcaram sua vida.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Planos */}
+      <section id="planos" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Escolha seu plano
+            </h2>
+            <p className="text-xl text-gray-600">
+              Opções mensais flexíveis para preservar seus legados digitais
+            </p>
+          </div>
+
+          {loadingPlanos ? (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando planos...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {planos.map((plano) => (
+                <div
+                  key={plano.id}
+                  className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl hover:transform hover:-translate-y-1 transition-all duration-300 ${
+                    plano.mais_popular ? "ring-4 ring-green-400 relative" : ""
+                  }`}
+                >
+                  {plano.mais_popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                      Mais Popular
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      {plano.titulo}
+                    </h3>
+                    <div
+                      className="text-4xl font-bold mb-6"
+                      style={{ color: plano.cor }}
+                    >
+                      R$ {plano.preco.replace(".", ",")}
+                      <span className="text-lg text-gray-500">/mês</span>
+                    </div>
+                    <div className="text-gray-600 mb-8">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Users className="w-5 h-5" style={{ color: plano.cor }} />
+                        <span>Até {plano.destinatarios} destinatários</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSelectPlan(plano)}
+                      className={`w-full text-white py-3 rounded-lg font-bold transition-all hover:shadow-lg ${
+                        plano.mais_popular
+                          ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700"
+                          : "bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
+                      }`}
+                    >
+                      Assinar
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
+        </div>
+      </section>
 
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Cofres */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Archive className="w-6 h-6 text-blue-600" />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">
-                  {dashboardData?.statistics.total_vaults || 0}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">
-                Total de Cofres Digitais
-              </h3>
-              <p className="text-gray-500 text-sm">Cofres criados e ativos</p>
-            </div>
-
-            {/* Total Mensagens */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <MessageCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">
-                  {dashboardData?.statistics.total_messages || 0}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">
-                Total de Mensagens
-              </h3>
-              <p className="text-gray-500 text-sm">Mensagens criadas</p>
-            </div>
-
-            {/* Total Destinatários */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-600" />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">
-                  {dashboardData?.statistics.total_recipients || 0}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">
-                Total de Destinatários
-              </h3>
-              <p className="text-gray-500 text-sm">Pessoas cadastradas</p>
-            </div>
-
-            {/* Número da Sorte */}
-            <div
-              onClick={handleLuckyModalToggle}
-              className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <Gift className="w-6 h-6 text-amber-600" />
-                </div>
-                <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-xl px-3 py-1 rounded-lg animate-pulse">
-                  #
-                  {dashboardData?.lucky_number.number ||
-                    user?.id?.toString().padStart(4, "0") ||
-                    "0000"}
-                </div>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">
-                Seu Número da Sorte
-              </h3>
-              <p className="text-gray-500 text-sm">Clique para ver as regras</p>
-            </div>
+      {/* FAQ */}
+      <section id="faq" className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Perguntas Frequentes
+            </h2>
+            <p className="text-xl text-gray-600">
+              Tire suas dúvidas sobre o LegadoBox
+            </p>
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {/* Criar Cofre */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
-                <Plus className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Criar Novo Cofre
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Crie um cofre digital especial para alguém que você ama
-              </p>
+          <div className="space-y-4">
+            {/* FAQ Item 1 */}
+            <div className="border-b border-gray-200">
               <button
-                onClick={() => handleAction("/dashboard/criar-cofre")}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-lg hover:opacity-90 transition-opacity font-medium"
+                onClick={() => toggleFaq(1)}
+                className="w-full text-left py-6 flex items-center justify-between"
               >
-                Começar Agora
+                <span className="text-lg font-semibold text-gray-900">
+                  Como funciona a entrega das mensagens?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 1 ? "rotate-180" : ""
+                  }`}
+                />
               </button>
-            </div>
-
-            {/* Gerenciar Destinatários */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-white" />
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 1 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Monitoramos discretamente através do CPF e confirmamos
+                  oficialmente o falecimento. Após a confirmação, entramos em
+                  contato com os destinatários cadastrados e entregamos as
+                  mensagens de forma segura e privada.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Gerenciar Destinatários
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Adicione ou edite as pessoas que receberão seus legados
-              </p>
-              <button
-                onClick={() => handleAction("/dashboard/destinatarios")}
-                className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-medium"
-              >
-                Gerenciar
-              </button>
             </div>
 
-            {/* Meus Cofres */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center mb-4">
-                <Archive className="w-8 h-8 text-white" />
+            {/* FAQ Item 2 */}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleFaq(2)}
+                className="w-full text-left py-6 flex items-center justify-between"
+              >
+                <span className="text-lg font-semibold text-gray-900">
+                  Meus dados estão seguros?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 2 ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 2 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Sim! Utilizamos criptografia de ponta a ponta e seguimos os
+                  mais rigorosos padrões de segurança. Seus dados são protegidos
+                  com a mesma tecnologia usada por bancos e instituições
+                  financeiras.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Meus Cofres
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Visualize e edite todos os seus cofres digitais criados
-              </p>
+            </div>
+
+            {/* FAQ Item 3 */}
+            <div className="border-b border-gray-200">
               <button
-                onClick={() => handleAction("/dashboard/cofres")}
-                className="w-full bg-purple-500 text-white py-3 rounded-lg hover:bg-purple-600 transition-colors font-medium"
+                onClick={() => toggleFaq(3)}
+                className="w-full text-left py-6 flex items-center justify-between"
               >
-                Ver Cofres
+                <span className="text-lg font-semibold text-gray-900">
+                  Posso alterar as mensagens depois de criadas?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 3 ? "rotate-180" : ""
+                  }`}
+                />
               </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 3 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Claro! Você pode editar, adicionar ou remover mensagens a
+                  qualquer momento enquanto sua conta estiver ativa. Suas
+                  mensagens ficam sempre sob seu controle.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-2xl font-bold text-gray-900">
-                Atividade Recente
-              </h3>
+            {/* FAQ Item 4 */}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleFaq(4)}
+                className="w-full text-left py-6 flex items-center justify-between"
+              >
+                <span className="text-lg font-semibold text-gray-900">
+                  Quantos destinatários posso adicionar?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 4 ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 4 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Depende do seu plano: Memória (2 destinatários), Lembrança (5
+                  destinatários) ou Legado (10 destinatários). Você pode fazer
+                  upgrade a qualquer momento.
+                </p>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {dashboardData?.recent_activities.map((activity, index) => {
-                  // Mapear ícones da API para componentes
-                  const getIconComponent = (iconName: string) => {
-                    switch (iconName) {
-                      case "message-circle":
-                        return MessageCircle;
-                      case "plus":
-                        return Plus;
-                      case "user-plus":
-                        return UserPlus;
-                      default:
-                        return MessageCircle;
-                    }
-                  };
 
-                  const IconComponent = getIconComponent(activity.icon);
+            {/* FAQ Item 5 */}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleFaq(5)}
+                className="w-full text-left py-6 flex items-center justify-between"
+              >
+                <span className="text-lg font-semibold text-gray-900">
+                  E se eu quiser cancelar o serviço?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 5 ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 5 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Você pode cancelar a qualquer momento. Após o cancelamento,
+                  seus dados serão mantidos por 90 dias para possível reativação.
+                  Após esse período, tudo será permanentemente excluído.
+                </p>
+              </div>
+            </div>
 
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                    >
-                      <div
-                        className={`w-10 h-10 bg-${activity.color}-100 rounded-full flex items-center justify-center`}
-                      >
-                        <IconComponent
-                          className={`w-5 h-5 text-${activity.color}-600`}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {activity.description}
-                        </p>
-                        <p className="text-gray-500 text-sm">{activity.date}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* FAQ Item 6 */}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleFaq(6)}
+                className="w-full text-left py-6 flex items-center justify-between"
+              >
+                <span className="text-lg font-semibold text-gray-900">
+                  Como vocês verificam se algo aconteceu comigo?
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                    openFaq === 6 ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  openFaq === 6 ? "max-h-48 pb-6" : "max-h-0"
+                }`}
+              >
+                <p className="text-gray-600">
+                  Utilizamos verificação oficial através do CPF em bases de dados
+                  governamentais. O processo é discreto, seguro e respeitoso,
+                  garantindo que as mensagens sejam entregues apenas no momento
+                  apropriado.
+                </p>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* Lucky Number Modal */}
-      <LuckyNumberModal
-        isOpen={showLuckyModal}
-        onClose={handleLuckyModalToggle}
-        luckyNumber={parseInt(
-          dashboardData?.lucky_number.number ||
-            user?.id?.toString().padStart(4, "0") ||
-            "0000"
-        )}
-        subscriptionStatus={
-          user?.assinatura?.status === "ativa" ? "active" : "inactive"
-        }
-        nextDrawDate={
-          dashboardData?.lucky_number.next_draw_date
-            ? new Date(
-                dashboardData.lucky_number.next_draw_date
-              ).toLocaleDateString("pt-BR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })
-            : "4 de janeiro de 2025"
-        }
-      />
+      {/* CTA Final */}
+      <section className="bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Comece a preservar sua história hoje
+          </h2>
+          <p className="text-xl mb-8 text-blue-100">
+            Não deixe para amanhã as palavras que podem fazer a diferença na
+            vida de quem você ama.
+          </p>
+          <button
+            onClick={handleStartFreeTrial}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition-all hover:shadow-2xl transform hover:scale-105"
+          >
+            Criar meu cofre digital
+          </button>
+        </div>
+      </section>
 
-      {/* Upgrade Plans Modal */}
-      {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  🚀 Escolha seu Plano
-                </h3>
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
+            {/* Logo e descrição */}
+            <div className="md:col-span-2">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-800 rounded-lg flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold">LegadoBox</span>
+              </div>
+              <p className="text-gray-400 mb-6">
+                Preserve suas memórias e mensagens mais importantes em um cofre
+                digital seguro. Garanta que suas palavras cheguem às pessoas
+                certas no momento certo.
+              </p>
+            </div>
+
+            {/* Links */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="#inicio"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Início
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#como-funciona"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Como Funciona
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#planos"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Planos
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#faq"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contato */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Contato</h3>
+              <ul className="space-y-2">
+                <li>
+                  <button
+                    onClick={() => setShowContactModal(true)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Enviar Mensagem
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href="/privacidade"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Privacidade
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/termos"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Termos de Uso
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
+            <p className="text-gray-400">
+              &copy; 2024 LegadoBox. Todos os direitos reservados.
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      {/* Modal Receber Legado */}
+      {showReceiveLegacyModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          style={{ backdropFilter: "blur(8px)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowReceiveLegacyModal(false);
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Gift className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Receber Legado
+              </h3>
+              <p className="text-gray-600">
+                Acesse o legado digital deixado para você
+              </p>
+            </div>
+
+            <form onSubmit={handleReceiveLegacy} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Login/CPF
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Digite seu CPF ou login"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Digite a senha"
+                  required
+                />
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-blue-800 flex items-start">
+                  <Info className="w-4 h-4 inline mr-2 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Você recebeu de nossa equipe uma dica deixada por quem enviou
+                    a mensagem, para que possa lembrar ou descobrir a senha e
+                    acessar o legado com segurança.
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
                 <button
-                  onClick={() => setShowUpgradeModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  type="button"
+                  onClick={() => setShowReceiveLegacyModal(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-lg font-medium transition-all hover:shadow-lg"
+                >
+                  Acessar Legado
                 </button>
               </div>
-            </div>
-
-            <div className="p-6">
-              {loadingPlanos ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-600">Carregando planos...</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {planos.map((plano) => (
-                    <div
-                      key={plano.id}
-                      onClick={() => handleUpgradePlan(plano)}
-                      className={`border-2 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                        plano.mais_popular
-                          ? "border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 ring-2 ring-green-200"
-                          : "border-gray-300 bg-white hover:border-indigo-400"
-                      }`}
-                      style={{
-                        borderColor: plano.mais_popular ? undefined : plano.cor,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: `${plano.cor}20` }}
-                          >
-                            {plano.mais_popular ? (
-                              <Star
-                                className="w-5 h-5"
-                                style={{ color: plano.cor }}
-                              />
-                            ) : (
-                              <Crown
-                                className="w-5 h-5"
-                                style={{ color: plano.cor }}
-                              />
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h4 className="text-xl font-bold text-gray-900">
-                                {plano.titulo}
-                              </h4>
-                              {plano.mais_popular && (
-                                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                                  Mais Popular
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-gray-600">
-                              {plano.destinatarios === 999
-                                ? "Destinatários ilimitados"
-                                : `Até ${plano.destinatarios} destinatários`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-gray-900">
-                            R$ {Number(plano.preco).toFixed(2).replaceAll(".", ",")}
-                          </p>
-                          <p className="text-sm text-gray-500">/mês</p>
-                        </div>
-                      </div>
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>
-                            {plano.destinatarios === 999
-                              ? "Destinatários ilimitados"
-                              : `Até ${plano.destinatarios} destinatários`}
-                          </span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>Cofres ilimitados</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <Check
-                            className="w-4 h-4"
-                            style={{ color: plano.cor }}
-                          />
-                          <span>Suporte prioritário</span>
-                        </li>
-                        {plano.id === 3 && (
-                          <li className="flex items-center space-x-2">
-                            <Check
-                              className="w-4 h-4"
-                              style={{ color: plano.cor }}
-                            />
-                            <span>Recursos exclusivos</span>
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} />
+      {/* Modal Contato */}
+      {showContactModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          style={{ backdropFilter: "blur(8px)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowContactModal(false);
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Entre em Contato
+              </h3>
+              <p className="text-gray-600">
+                Envie sua mensagem para nossa equipe
+              </p>
+            </div>
+
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Seu nome completo"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mensagem
+                </label>
+                <textarea
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Digite sua mensagem..."
+                  required
+                />
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowContactModal(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-lg font-medium transition-all hover:shadow-lg"
+                >
+                  Enviar Mensagem
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
