@@ -135,13 +135,13 @@ export default function Home() {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
-              <button
+              {/* <button
                 onClick={() => setShowReceiveLegacyModal(true)}
                 className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-lg font-medium transition-all hover:shadow-lg flex items-center space-x-2"
               >
                 <Gift className="w-4 h-4" />
                 <span>Receber Legado</span>
-              </button>
+              </button> */}
               <button
                 onClick={handleLoginOrDashboard}
                 className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-4 py-2 rounded-lg font-medium transition-all hover:shadow-lg"
