@@ -35,6 +35,7 @@ export default function Home() {
   const [showReceiveLegacyModal, setShowReceiveLegacyModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
     fetchPlanos();
@@ -85,8 +86,13 @@ export default function Home() {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) {
+      alert("Por favor, aceite os termos de uso e política de privacidade.");
+      return;
+    }
     alert("Mensagem enviada com sucesso!");
     setShowContactModal(false);
+    setAcceptTerms(false);
   };
 
   return (
@@ -398,6 +404,30 @@ export default function Home() {
               ))}
             </div>
           )}
+          
+          {/* Privacy Notice */}
+          <div className="text-center mt-12">
+            <p className="text-sm text-gray-500">
+              Ao assinar um plano, você concorda com nossos{" "}
+              <a
+                href="/termos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Termos de Uso
+              </a>{" "}
+              e{" "}
+              <a
+                href="/privacidade"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Política de Privacidade
+              </a>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -680,14 +710,18 @@ export default function Home() {
                 <li>
                   <a
                     href="/privacidade"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Privacidade
+                    Política de Privacidade
                   </a>
                 </li>
                 <li>
                   <a
                     href="/termos"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Termos de Uso
@@ -844,6 +878,37 @@ export default function Home() {
                   placeholder="Digite sua mensagem..."
                   required
                 />
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="acceptTerms"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  required
+                />
+                <label htmlFor="acceptTerms" className="text-sm text-gray-600">
+                  Concordo com os{" "}
+                  <a
+                    href="/termos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Termos de Uso
+                  </a>{" "}
+                  e{" "}
+                  <a
+                    href="/privacidade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Política de Privacidade
+                  </a>
+                </label>
               </div>
 
               <div className="flex space-x-3">

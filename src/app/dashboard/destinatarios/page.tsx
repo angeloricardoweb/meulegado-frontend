@@ -751,14 +751,15 @@ function RecipientsPageContent() {
                     <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
                       <h4 className="font-medium text-blue-900 mb-1">
-                        Por que precisamos dessas informações?
+                        Por que solicitamos esses dados?
                       </h4>
                       <p className="text-blue-700 text-sm">
-                        Preencha os dados abaixo para garantir que sua mensagem
-                        chegue com segurança e rapidez no momento certo. Quanto
-                        mais informações você fornecer, mais fácil será
-                        localizar e entregar sua mensagem para a pessoa
-                        escolhida.
+                        Essas informações nos permitem garantir uma entrega
+                        segura, precisa e pontual da sua mensagem. Você não
+                        precisa ter todos os dados agora — poderá adicioná-los
+                        quando quiser. Independente disso, todas as mensagens
+                        serão entregues, com total confidencialidade e
+                        compromisso do LegadoBox.
                       </p>
                     </div>
                   </div>
