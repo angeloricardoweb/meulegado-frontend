@@ -23,6 +23,12 @@ export default function CadastroPage() {
     data_nascimento: "",
     email: "",
     telefone: "",
+    cep: "",
+    rua: "",
+    numero: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
     endereco: "",
     password: "",
     password_confirmation: "",
@@ -32,8 +38,51 @@ export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [loadingCep, setLoadingCep] = useState(false);
+
+  // Lista de estados brasileiros
+  const estados = [
+    { uf: "AC", nome: "Acre" },
+    { uf: "AL", nome: "Alagoas" },
+    { uf: "AP", nome: "Amapá" },
+    { uf: "AM", nome: "Amazonas" },
+    { uf: "BA", nome: "Bahia" },
+    { uf: "CE", nome: "Ceará" },
+    { uf: "DF", nome: "Distrito Federal" },
+    { uf: "ES", nome: "Espírito Santo" },
+    { uf: "GO", nome: "Goiás" },
+    { uf: "MA", nome: "Maranhão" },
+    { uf: "MT", nome: "Mato Grosso" },
+    { uf: "MS", nome: "Mato Grosso do Sul" },
+    { uf: "MG", nome: "Minas Gerais" },
+    { uf: "PA", nome: "Pará" },
+    { uf: "PB", nome: "Paraíba" },
+    { uf: "PR", nome: "Paraná" },
+    { uf: "PE", nome: "Pernambuco" },
+    { uf: "PI", nome: "Piauí" },
+    { uf: "RJ", nome: "Rio de Janeiro" },
+    { uf: "RN", nome: "Rio Grande do Norte" },
+    { uf: "RS", nome: "Rio Grande do Sul" },
+    { uf: "RO", nome: "Rondônia" },
+    { uf: "RR", nome: "Roraima" },
+    { uf: "SC", nome: "Santa Catarina" },
+    { uf: "SP", nome: "São Paulo" },
+    { uf: "SE", nome: "Sergipe" },
+    { uf: "TO", nome: "Tocantins" },
+  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Limpar erro quando usuário começar a digitar
+    if (error) setError("");
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -53,6 +102,11 @@ export default function CadastroPage() {
     return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
   };
 
+  const formatCEP = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    return numbers.replace(/(\d{5})(\d{3})/, "$1-$2");
+  };
+
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCPF(e.target.value);
     setFormData((prev) => ({
@@ -67,6 +121,40 @@ export default function CadastroPage() {
       ...prev,
       telefone: formatted,
     }));
+  };
+
+  const handleCEPChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCEP(e.target.value);
+    setFormData((prev) => ({
+      ...prev,
+      cep: formatted,
+    }));
+
+    // Buscar endereço quando CEP estiver completo
+    const cepNumbers = e.target.value.replace(/\D/g, "");
+    if (cepNumbers.length === 8) {
+      setLoadingCep(true);
+      try {
+        const response = await fetch(
+          `https://viacep.com.br/ws/${cepNumbers}/json/`
+        );
+        const data = await response.json();
+
+        if (!data.erro) {
+          setFormData((prev) => ({
+            ...prev,
+            rua: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+      } finally {
+        setLoadingCep(false);
+      }
+    }
   };
 
   const validateForm = () => {
@@ -84,17 +172,28 @@ export default function CadastroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!acceptTerms) {
+      setError(
+        "Você deve aceitar os termos de uso e política de privacidade para continuar."
+      );
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsLoading(true);
     setError("");
 
     try {
-      // Preparar dados para envio removendo máscaras
+      // Preparar dados para envio removendo máscaras e montando endereço completo
+      const enderecoCompleto = `${formData.rua}, ${formData.numero} - ${formData.bairro}, ${formData.cidade}/${formData.estado} - CEP: ${formData.cep}`;
+
       const dataToSend = {
         ...formData,
         cpf: formData.cpf.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
         telefone: formData.telefone.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
+        cep: formData.cep.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
+        endereco: enderecoCompleto,
       };
 
       const response = await api.post("/register", dataToSend);
@@ -279,56 +378,170 @@ export default function CadastroPage() {
               </div>
             </div>
 
-            {/* Telefone e Endereço */}
+            {/* Telefone */}
+            <div>
+              <label
+                htmlFor="telefone"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Telefone
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="telefone"
+                  name="telefone"
+                  value={formData.telefone}
+                  onChange={handlePhoneChange}
+                  required
+                  maxLength={15}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+
+            {/* CEP */}
+            <div>
+              <label
+                htmlFor="cep"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                CEP
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="cep"
+                  name="cep"
+                  value={formData.cep}
+                  onChange={handleCEPChange}
+                  required
+                  maxLength={9}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="00000-000"
+                />
+                {loadingCep && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Cidade e Estado */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
-                  htmlFor="telefone"
+                  htmlFor="estado"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  Telefone
+                  Estado
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="telefone"
-                    name="telefone"
-                    value={formData.telefone}
-                    onChange={handlePhoneChange}
-                    required
-                    maxLength={15}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
+                <select
+                  id="estado"
+                  name="estado"
+                  value={formData.estado}
+                  onChange={handleSelectChange}
+                  required
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                >
+                  <option value="">Selecione o estado</option>
+                  {estados.map((estado) => (
+                    <option key={estado.uf} value={estado.uf}>
+                      {estado.nome}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label
-                  htmlFor="endereco"
+                  htmlFor="cidade"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  Endereço
+                  Cidade
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="endereco"
-                    name="endereco"
-                    value={formData.endereco}
-                    onChange={handleInputChange}
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                    placeholder="Rua, Cidade - Estado"
-                  />
-                </div>
+                <input
+                  type="text"
+                  id="cidade"
+                  name="cidade"
+                  value={formData.cidade}
+                  onChange={handleInputChange}
+                  required
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Nome da cidade"
+                />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {/* Bairro */}
+              <div className="md:col-span-5">
+                <label
+                  htmlFor="bairro"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Bairro
+                </label>
+                <input
+                  type="text"
+                  id="bairro"
+                  name="bairro"
+                  value={formData.bairro}
+                  onChange={handleInputChange}
+                  required
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Nome do bairro"
+                />
+              </div>
+
+              {/* Rua */}
+              <div className="md:col-span-5">
+                <label
+                  htmlFor="rua"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Rua
+                </label>
+                <input
+                  type="text"
+                  id="rua"
+                  name="rua"
+                  value={formData.rua}
+                  onChange={handleInputChange}
+                  required
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Nome da rua"
+                />
+              </div>
+
+              {/* Número */}
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="numero"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Número
+                </label>
+                <input
+                  type="text"
+                  id="numero"
+                  name="numero"
+                  value={formData.numero}
+                  onChange={handleInputChange}
+                  required
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="123"
+                />
+              </div>
+            </div>
+
+            {/* Rua e Número */}
 
             {/* Senha e Confirmação */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -418,6 +631,38 @@ export default function CadastroPage() {
                 )}
               </div>
             )}
+
+            {/* Checkbox de Aceite dos Termos */}
+            <div className="flex items-start space-x-3">
+              <input
+                type="checkbox"
+                id="acceptTerms"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                required
+              />
+              <label htmlFor="acceptTerms" className="text-sm text-gray-600">
+                Concordo com os{" "}
+                <a
+                  href="/termos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Termos de Uso
+                </a>{" "}
+                e{" "}
+                <a
+                  href="/privacidade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Política de Privacidade
+                </a>
+              </label>
+            </div>
 
             {/* Botões */}
             <div className="flex flex-col sm:flex-row gap-4">

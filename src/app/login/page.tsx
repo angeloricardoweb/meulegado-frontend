@@ -60,7 +60,7 @@ export default function LoginPage() {
       console.log("Usuário salvo:", results.user);
 
       // Redirecionar para dashboard
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     } catch (error: any) {
       setError(error.response.data.messages[0]);
     } finally {

@@ -207,11 +207,11 @@ export default function CreateVaultPage() {
 
         return router.push(`/dashboard/criar-cofre-conteudo?vaultId=${vaultId}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       addToast({
         type: 'error',
         title: 'Erro ao criar cofre',
-        message: 'Tente novamente em alguns instantes.'
+        message: err.response.data.messages[0]
       });
     } finally {
       setIsSubmitting(false);

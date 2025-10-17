@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
 import useSWR from "swr";
 import api from "@/lib/api";
+import { ToastContainer, useToast } from "@/components/Toast";
 
 // Interface para cofres (UI)
 interface Cofre {
@@ -107,6 +108,7 @@ const fetcher = async (url: string) => {
 
 export default function CofresPage() {
   const { isLoading } = useAuth();
+  const { addToast, toasts } = useToast();
   const {
     data,
     error,
@@ -313,10 +315,14 @@ export default function CofresPage() {
       await mutate();
       setShowDeleteModal(false);
       setCofreToDelete(null);
-    } catch {
-      // Em caso de erro, apenas fechar o modal
+    } catch (err: any) {
       setShowDeleteModal(false);
       setCofreToDelete(null);
+      addToast({
+        type: "error",
+        title: "Erro ao deletar cofre",
+        message: err.response.data.messages[0],
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -752,6 +758,8 @@ export default function CofresPage() {
           <span>Link copiado para a área de transferência!</span>
         </div>
       )}
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

@@ -99,6 +99,7 @@ interface AdminUserDetailsResponse {
     messages_count: number;
     photos_count: number;
     videos_count: number;
+    vault_accessed: boolean;
   }[];
 }
 
@@ -111,6 +112,7 @@ function AdminDashboardContent() {
   const [selectedDetails, setSelectedDetails] =
     useState<AdminUserDetailsResponse | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [planFilter, setPlanFilter] = useState("");
@@ -237,6 +239,28 @@ function AdminDashboardContent() {
     setSelectedDetails(null);
   };
 
+  const handleSendEmail = async (vaultId: number) => {
+    setSendingEmail(vaultId);
+    try {
+      const response = await api.post(
+        `https://meulegado-frontend.vercel.app/api/vault/${vaultId}/send-email`
+      );
+      addToast({
+        type: "success",
+        title: "Email enviado",
+        message: response.data.messages[0],
+      });
+    } catch (error: any) {
+      addToast({
+        type: "error",
+        title: "Erro ao enviar email",
+        message: error.response.data.messages[0],
+      });
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
   const openConfirm = (action: "mark_deceased" | "deliver_vault") => {
     setConfirmAction(action);
     setConfirmOpen(true);
@@ -318,7 +342,7 @@ function AdminDashboardContent() {
     } finally {
       setLoadingStats(false);
     }
-  }, [addToast]);
+  }, [addToast, router]);
 
   const fetchUsers = useCallback(
     async (page: number = 1) => {
@@ -1013,16 +1037,41 @@ function AdminDashboardContent() {
                           } border rounded-xl p-4`}
                         >
                           <div className="flex items-center justify-between mb-3">
-                            <h5 className="font-bold text-gray-900">
-                              {v.title}
-                            </h5>
-                            <span
-                              className={`text-sm font-medium ${
-                                v.is_active ? "text-blue-600" : "text-gray-600"
-                              }`}
-                            >
-                              {v.status_label}
-                            </span>
+                            <div className="flex items-center space-x-3">
+                              <h5 className="font-bold text-gray-900">
+                                {v.title}
+                              </h5>
+                              {v.vault_accessed && (
+                                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                                  Cofre já foi acessado
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`text-sm font-medium ${
+                                  v.is_active
+                                    ? "text-blue-600"
+                                    : "text-gray-600"
+                                }`}
+                              >
+                                {v.status_label}
+                              </span>
+                              <button
+                                onClick={() => handleSendEmail(v.id)}
+                                disabled={sendingEmail === v.id}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                              >
+                                {sendingEmail === v.id ? (
+                                  <>
+                                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Enviando...</span>
+                                  </>
+                                ) : (
+                                  <span>Enviar E-mail</span>
+                                )}
+                              </button>
+                            </div>
                           </div>
                           <div className="grid md:grid-cols-2 gap-4 text-sm">
                             <div>
